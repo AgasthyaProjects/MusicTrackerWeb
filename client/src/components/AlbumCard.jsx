@@ -1,17 +1,17 @@
-export default function AlbumCard({ album, onOpenSurvey, onRatingClick }) {
+export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDeleteMode, isSelected, onSelect }) {
   const handleAppleMusicClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     window.open(album.collectionViewUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // const handleRatingClick = (e) => {
-  //   e.preventDefault();
-  //   e.stopPropagation();
-  //   if (onRatingClick) {
-  //     console.log(`Rating clicked for album: ${album.collectionName}`);
-  //   }
-  // };
+  const handleCardClick = (e) => {
+    if (isDeleteMode) {
+      e.preventDefault();
+      e.stopPropagation();
+      onSelect?.();
+    }
+  };
 
   return (
     <div
@@ -20,14 +20,53 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick }) {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        position: 'relative'
+        position: 'relative',
+        cursor: isDeleteMode ? 'pointer' : 'default',
+        transform: isSelected ? 'scale(0.95)' : 'scale(1)',
+        opacity: isDeleteMode && !isSelected ? 0.6 : 1,
+        transition: 'all 0.2s ease',
+        border: isSelected ? '2px solid #ef4444' : '2px solid transparent',
+        borderRadius: '18px',
+        padding: isSelected ? '0.5rem' : '0'
       }}
+      onClick={handleCardClick}
     >
+      {/* Selection Checkbox (only visible in delete mode) */}
+      {isDeleteMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            background: isSelected ? '#ef4444' : 'rgba(0, 0, 0, 0.5)',
+            border: isSelected ? 'none' : '2px solid #fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect?.();
+          }}
+        >
+          {isSelected && (
+            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>✓</span>
+          )}
+        </div>
+      )}
+
       <img
         src={
           album.artworkUrl100
             ? album.artworkUrl100.replace('100x100', '500x500')
-            : '/placeholder.png' // 👈 fallback image in public/ folder
+            : '/placeholder.png'
         }
         alt={album.collectionName}
         style={{
@@ -41,7 +80,6 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick }) {
           transition: 'all 0.3s ease'
         }}
       />
-
 
       {/* Content that can vary in height */}
       <div style={{
@@ -80,88 +118,115 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick }) {
 
       {/* Fixed position elements at bottom */}
       <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-        <a
-          href={album.collectionViewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={handleAppleMusicClick}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '0.75rem',
-            fontSize: '0.85rem',
-            color: '#60a5fa',
-            textDecoration: 'none',
-            transition: 'all 0.2s ease',
-            fontWeight: '500',
-            padding: '0.25rem 0'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.color = '#93c5fd';
-            e.target.style.transform = 'translateX(4px)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.color = '#60a5fa';
-            e.target.style.transform = 'translateX(0)';
-          }}
-        >
-          Listen on Apple Music
-          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>↗</span>
-        </a>
+        {!isDeleteMode && (
+          <a
+            href={album.collectionViewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleAppleMusicClick}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.75rem',
+              fontSize: '0.85rem',
+              color: '#60a5fa',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              fontWeight: '500',
+              padding: '0.25rem 0'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = '#93c5fd';
+              e.target.style.transform = 'translateX(4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = '#60a5fa';
+              e.target.style.transform = 'translateX(0)';
+            }}
+          >
+            Listen on Apple Music
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>↗</span>
+          </a>
+        )}
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            //handleRatingClick(e);
-            if (onOpenSurvey) {
-              onOpenSurvey(album);
+        {isDeleteMode ? (
+          <div
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '0.75rem 1rem',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              borderRadius: '12px',
+              border: '2px dashed #ef4444',
+              backgroundColor: isSelected ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+              color: isSelected ? '#ef4444' : '#6b7280',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect?.();
+            }}
+          >
+            {isSelected ? '✓ Selected for Deletion' : 'Click to Select'}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (onOpenSurvey) {
+                onOpenSurvey(album);
+              }
+            }}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '0.75rem 1rem',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              borderRadius: '12px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: album.rating ? '#10b981' : '#3b82f6',
+              color: '#fff',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: album.rating ? '0 4px 14px rgba(16, 185, 129, 0.3)' : '0 4px 14px rgba(59, 130, 246, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              if (album.rating) {
+                e.target.style.backgroundColor = '#059669';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)';
+              } else {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (album.rating) {
+                e.target.style.backgroundColor = '#10b981';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.3)';
+              } else {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
+              }
+            }}
+          >
+            {album.rating ?
+              `⭐ ${album.rating}/10` :
+              'Rate Album'
             }
-          }}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '0.75rem 1rem',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            borderRadius: '12px',
-            border: 'none',
-            cursor: 'pointer',
-            backgroundColor: album.rating ? '#10b981' : '#3b82f6',
-            color: '#fff',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: album.rating ? '0 4px 14px rgba(16, 185, 129, 0.3)' : '0 4px 14px rgba(59, 130, 246, 0.3)'
-          }}
-          onMouseEnter={(e) => {
-            if (album.rating) {
-              e.target.style.backgroundColor = '#059669';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)';
-            } else {
-              e.target.style.backgroundColor = '#2563eb';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (album.rating) {
-              e.target.style.backgroundColor = '#10b981';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.3)';
-            } else {
-              e.target.style.backgroundColor = '#3b82f6';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
-            }
-          }}
-        >
-          {album.rating ?
-            `⭐ ${album.rating}/10` :
-            'Rate Album'
-          }
-        </button>
+          </button>
+        )}
       </div>
     </div>
   );

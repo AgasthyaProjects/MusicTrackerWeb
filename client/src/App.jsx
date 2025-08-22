@@ -8,78 +8,209 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [albums, setAlbums] = useState([]);
   const [loggedAlbums, setLoggedAlbums] = useState([]);
+  const [ratingsMap, setRatingsMap] = useState({});
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [activeTab, setActiveTab] = useState('search'); // "search" or "logged"
+  const [sortBy, setSortBy] = useState('rating');       // sort field
+  const [sortOrder, setSortOrder] = useState('desc');   // "asc" or "desc"
+  const [selectedAlbumIds, setSelectedAlbumIds] = useState(new Set()); // for multi-select
+  const [isDeleteMode, setIsDeleteMode] = useState(false); // toggle delete mode
 
   useEffect(() => {
-    fetchLoggedAlbums();
+    fetchRatings();
   }, []);
 
-  const fetchLoggedAlbums = async () => {
-  try {
-    const res = await fetch('/api/survey/rated');
-    const data = await res.json();
-    setLoggedAlbums(data.albums || []);
-  } catch (err) {
-    console.error('Failed to fetch logged albums', err);
-  }
-};
+  // ✅ Fetch logged albums + build ratingsMap using BOTH album name AND collection ID as keys
+  const fetchRatings = async () => {
+    try {
+      const res = await fetch('/api/survey/rated');
+      const data = await res.json();
+      const albums = data.albums || [];
+      setLoggedAlbums(albums);
 
+      // Build ratingsMap using both album names AND IDs as keys for better matching
+      const map = {};
+      albums.forEach(a => {
+        console.log('Processing album from backend:', {
+          collectionName: a.collectionName,
+          collectionId: a.collectionId,
+          rating: a.rating
+        });
 
+        // Use album name as primary key
+        map[a.collectionName] = a.rating;
+        // Also store by ID as fallback
+        map[String(a.collectionId)] = a.rating;
+
+        // Handle potential name variations (trim whitespace, normalize)
+        const normalizedName = a.collectionName?.trim();
+        if (normalizedName && normalizedName !== a.collectionName) {
+          map[normalizedName] = a.rating;
+        }
+      });
+
+      setRatingsMap(map);
+      return map; // Return the map so we can use it immediately
+    } catch (err) {
+      console.error('Failed to fetch ratings', err);
+      return {};
+    }
+  };
+
+  // ✅ Search and enrich with ratings - try multiple lookup strategies
   const handleSearch = async () => {
     const results = await searchAlbums(query);
 
-    const ratedRes = await fetch('/api/survey/rated');
-    const ratedData = await ratedRes.json();
-    const ratedAlbumIds = ratedData.ratedAlbumIds || [];
+    const enriched = results.map((album) => {
+      console.log('Looking up rating for album:', {
+        collectionName: album.collectionName,
+        collectionId: album.collectionId
+      });
 
-    const albumsWithRatings = await Promise.all(
-      results.map(async (album) => {
-        let rating = null;
-        if (ratedAlbumIds.includes(String(album.collectionId))) {
-          const res = await fetch(`/api/survey/${album.collectionId}`);
-          const data = await res.json();
-          rating = data.rating;
-        }
-        return { ...album, rating };
-      })
-    );
-    setAlbums(albumsWithRatings);
+      // Try multiple lookup strategies
+      let rating = ratingsMap[album.collectionName] ||
+        ratingsMap[String(album.collectionId)] ||
+        ratingsMap[album.collectionName?.trim()] ||
+        null;
+
+
+      return {
+        ...album,
+        rating: rating,
+      };
+    });
+
+    setAlbums(enriched);
     setSelectedAlbum(null);
     setShowSurvey(false);
   };
 
-  const handleOpenSurvey = (album) => {
-    setSelectedAlbum(album);
+  const handleOpenSurvey = async (album) => {
+    let rating = album.rating;
+
+    // If rating isn't already present, fetch from backend using ID
+    if (rating == null) {
+      try {
+        const res = await fetch(`/api/survey/${album.collectionId}`);
+        const data = await res.json();
+        rating = data.rating ?? null;
+      } catch (err) {
+        console.error("Failed to fetch rating", err);
+      }
+    }
+
+    setSelectedAlbum({ ...album, rating });
     setShowSurvey(true);
   };
 
   const handleSurveyClose = async () => {
     if (selectedAlbum) {
-      const updatedRating = await fetchAlbumRating(selectedAlbum.collectionId);
+
+      // Refresh ratings from backend and get the updated map
+      const updatedRatingsMap = await fetchRatings();
+
+      // Update the albums list with new ratings using the fresh map
       setAlbums((prevAlbums) =>
-        prevAlbums.map((album) =>
-          album.collectionId === selectedAlbum.collectionId
-            ? { ...album, rating: updatedRating }
-            : album
-        )
+        prevAlbums.map((album) => {
+          if (album.collectionId === selectedAlbum.collectionId) {
+            // Try multiple lookup strategies for the updated rating
+            const updatedRating = updatedRatingsMap[album.collectionName] ||
+              updatedRatingsMap[String(album.collectionId)] ||
+              updatedRatingsMap[album.collectionName?.trim()] ||
+              null;
+
+            console.log('Updated album rating:', updatedRating, 'for', album.collectionName);
+
+            return { ...album, rating: updatedRating };
+          }
+          return album;
+        }),
       );
-      await fetchLoggedAlbums();
     }
     setShowSurvey(false);
     setSelectedAlbum(null);
   };
 
-  const fetchAlbumRating = async (albumId) => {
-    try {
-      const res = await fetch(`/api/survey/${albumId}`);
-      const data = await res.json();
-      return data.rating;
-    } catch {
-      return null;
+  // ✅ Handle album selection for deletion
+  const handleAlbumSelect = (albumId) => {
+    setSelectedAlbumIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(albumId)) {
+        newSet.delete(albumId);
+      } else {
+        newSet.add(albumId);
+      }
+      return newSet;
+    });
+  };
+
+  // ✅ Select all albums
+  const handleSelectAll = () => {
+    if (selectedAlbumIds.size === loggedAlbums.length) {
+      setSelectedAlbumIds(new Set()); // Deselect all
+    } else {
+      setSelectedAlbumIds(new Set(loggedAlbums.map(album => album.collectionId))); // Select all
     }
   };
+
+  // ✅ Delete selected albums
+  const handleDeleteSelected = async () => {
+    console.log('Deleting selected albums:', selectedAlbumIds);
+    if (selectedAlbumIds.size === 0) return;
+    console.log('Selected IDs:', Array.from(selectedAlbumIds));
+
+    const confirmMessage = selectedAlbumIds.size === 1
+      ? 'Are you sure you want to delete this album rating?'
+      : `Are you sure you want to delete ${selectedAlbumIds.size} album ratings?`;
+
+    console.log('Confirm message:', confirmMessage);
+    const confirmed = prompt(confirmMessage + ' Type YES to confirm') === 'YES';
+    if (!confirmed) return;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      // Send delete requests for each selected album
+      const deletePromises = Array.from(selectedAlbumIds).map(albumId =>
+        fetch(`/api/survey/${albumId}`, { method: 'DELETE' })
+      );
+
+      await Promise.all(deletePromises);
+
+      // Refresh the data
+      await fetchRatings();
+
+      // Clear selections and exit delete mode
+      setSelectedAlbumIds(new Set());
+      setIsDeleteMode(false);
+
+      console.log('Successfully deleted', selectedAlbumIds.size, 'album ratings');
+    } catch (error) {
+      console.error('Failed to delete album ratings:', error);
+      alert('Failed to delete some album ratings. Please try again.');
+    }
+  };
+
+  // ✅ Cancel delete mode
+  const handleCancelDelete = () => {
+    setSelectedAlbumIds(new Set());
+    setIsDeleteMode(false);
+  };
+
+  const sortedLoggedAlbums = [...loggedAlbums].sort((a, b) => {
+    let compare = 0;
+    if (sortBy === 'rating') {
+      compare = (a.rating ?? 0) - (b.rating ?? 0);
+    } else if (sortBy === 'artist') {
+      compare = a.artistName.localeCompare(b.artistName);
+    } else if (sortBy === 'album') {
+      compare = a.collectionName.localeCompare(b.collectionName);
+    } else if (sortBy == 'datelogged') {
+      compare = new Date(a.logdatetime) - new Date(b.logdatetime);
+    }
+    return sortOrder === 'asc' ? compare : -compare;
+  });
 
   return (
     <div className="app-container">
@@ -101,7 +232,7 @@ export default function App() {
         </button>
       </div>
 
-      {/* Tab Content */}
+      {/* Search Tab */}
       {activeTab === 'search' && (
         <section>
           <div className="search-bar">
@@ -126,20 +257,168 @@ export default function App() {
         </section>
       )}
 
+      {/* Logged Albums Tab */}
       {activeTab === 'logged' && (
         <section>
           {loggedAlbums.length === 0 ? (
             <p>No albums logged yet.</p>
           ) : (
-            <div className="album-grid">
-              {loggedAlbums.map((album) => (
-                <AlbumCard
-                  key={album.collectionId}
-                  album={album}
-                  onOpenSurvey={() => handleOpenSurvey(album)}
-                />
-              ))}
-            </div>
+            <>
+              {/* Controls Row */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                {/* Sorting controls */}
+                <div className="sort-controls" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <label htmlFor="sort">Sort by:</label>
+                  <select
+                    id="sort"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="sort-select"
+                  >
+                    <option value="rating">Rating</option>
+                    <option value="artist">Artist</option>
+                    <option value="album">Album</option>
+                    <option value="datelogged">Date Logged</option>
+                  </select>
+
+                  <button
+                    className="sort-toggle"
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    aria-label="Toggle sort order"
+                  >
+                    {sortOrder === 'asc' ? '🔼' : '🔽'}
+                  </button>
+                </div>
+
+                {/* Delete Mode Controls */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  {!isDeleteMode ? (
+                    <button
+                      onClick={() => setIsDeleteMode(true)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#dc2626';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#ef4444';
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      🗑️ Delete Albums
+                    </button>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(239, 68, 68, 0.3)'
+                    }}>
+                      <button
+                        onClick={handleSelectAll}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.8rem',
+                          fontWeight: '500',
+                          background: selectedAlbumIds.size === loggedAlbums.length ? '#3b82f6' : 'transparent',
+                          color: selectedAlbumIds.size === loggedAlbums.length ? '#fff' : '#3b82f6',
+                          border: '1px solid #3b82f6',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {selectedAlbumIds.size === loggedAlbums.length ? 'Deselect All' : 'Select All'}
+                      </button>
+
+                      <span style={{
+                        fontSize: '0.9rem',
+                        color: '#64748b',
+                        fontWeight: '500'
+                      }}>
+                        {selectedAlbumIds.size} selected
+                      </span>
+
+                      <button
+                        onClick={handleDeleteSelected}
+                        disabled={selectedAlbumIds.size === 0}
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          background: selectedAlbumIds.size > 0 ? '#ef4444' : '#6b7280',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: selectedAlbumIds.size > 0 ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Delete ({selectedAlbumIds.size})
+                      </button>
+
+                      <button
+                        onClick={handleCancelDelete}
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          fontSize: '0.8rem',
+                          fontWeight: '500',
+                          background: 'transparent',
+                          color: '#6b7280',
+                          border: '1px solid #6b7280',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="album-grid">
+                {sortedLoggedAlbums.map((album) => (
+                  <AlbumCard
+                    key={album.collectionId}
+                    album={album}
+                    onOpenSurvey={() => handleOpenSurvey(album)}
+                    isDeleteMode={isDeleteMode}
+                    isSelected={selectedAlbumIds.has(album.collectionId)}
+                    onSelect={() => handleAlbumSelect(album.collectionId)}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </section>
       )}
@@ -160,37 +439,22 @@ export default function App() {
             justifyContent: 'center',
             zIndex: 1000,
           }}
+          onClick={handleSurveyClose} // 🔴 close if overlay clicked
         >
           <div
             className="modal-content"
             style={{
-              borderRadius: '8px',
+              borderRadius: '12px',
               minWidth: '320px',
               position: 'relative',
             }}
+            onClick={(e) => e.stopPropagation()} // ✅ prevent clicks inside from closing
           >
-            <button
-              onClick={handleSurveyClose}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                background: 'transparent',
-                border: 'none',
-                fontSize: '1.5rem',
-                cursor: 'pointer',
-              }}
-              aria-label="Close"
-            >
-              &times;
-            </button>
-            {showSurvey && selectedAlbum && (
-              <SurveyForm album={selectedAlbum} onSubmitted={handleSurveyClose} />
-            )}
+            <SurveyForm album={selectedAlbum} onSubmitted={handleSurveyClose} />
           </div>
         </div>
       )}
+
     </div>
   );
-
 }

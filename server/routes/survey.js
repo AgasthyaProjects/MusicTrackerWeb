@@ -6,14 +6,12 @@ import surveyStore from '../surveyStore.js';
 // Save a rating
 router.post('/', async (req, res) => {
   const { albumId, albumName, artistName, artworkUrl100, rating } = req.body;
-  console.log("Received survey data:", req.body);
   // ✅ allow rating = 0 but disallow undefined
   if (!albumId || !albumName || !artistName || rating === undefined) {
     return res.status(400).json({ error: 'Missing fields' });
   }
 
   try {
-console.log("Incoming req.body:", req.body);
     await surveyStore.saveSurvey({
       albumId: String(albumId),
       albumName,
@@ -33,7 +31,7 @@ console.log("Incoming req.body:", req.body);
 router.get('/rated', async (req, res) => {
   try {
     db.all(
-      'SELECT album_id, album_name, artist_name, artwork_url, rating FROM survey_responses',
+      'SELECT album_id, album_name, artist_name, artwork_url, rating, date_logged FROM survey_responses',
       [],
       (err, rows) => {
         if (err) {
@@ -48,6 +46,7 @@ router.get('/rated', async (req, res) => {
             artistName: row.artist_name,
             artworkUrl100: row.artwork_url,
             rating: row.rating,
+            logdatetime: row.date_logged,
           })),
         });
       }
@@ -58,35 +57,35 @@ router.get('/rated', async (req, res) => {
   }
 });
 
-// Fetch one album’s details
-router.get('/:albumId', async (req, res) => {
-  const albumId = req.params.albumId;
-  try {
-    db.get(
-      'SELECT album_id, album_name, artist_name, artwork_url, rating FROM survey_responses WHERE album_id = ?',
-      [albumId],
-      (err, row) => {
-        if (err) {
-          console.error('DB error:', err);
-          return res.status(500).json({ error: 'DB error' });
-        }
-        if (!row) return res.json(null);
+// Delete a rating by albumId
+router.delete('/:albumId', async (req, res) => {
+  const { albumId } = req.params;
+  console.log('Delete request for albumId:', albumId);
+  if (!albumId) {
+    return res.status(400).json({ error: 'Missing albumId' });
+  }
 
-        res.json({
-          albumId: row.album_id,
-          albumName: row.album_name,
-          artistName: row.artist_name,
-          artworkUrl100: row.artwork_url, // ✅ expose artwork to frontend
-          rating: row.rating,
-        });
+  try {
+    db.run(
+      'DELETE FROM survey_responses WHERE album_id = ?',
+      [albumId],
+      function (err) {
+        if (err) {
+          console.error('Delete error:', err);
+          return res.status(500).json({ error: 'Failed to delete rating' });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Rating not found' });
+        }
+
+        res.json({ success: true });
       }
     );
   } catch (err) {
-    console.error('Failed to fetch rating:', err);
-    res.status(500).json({ error: 'Failed to fetch rating' });
+    console.error('Unexpected delete error:', err);
+    res.status(500).json({ error: 'Unexpected error during deletion' });
   }
 });
-
-
 
 export default router;

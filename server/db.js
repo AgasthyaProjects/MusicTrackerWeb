@@ -17,6 +17,7 @@ db.serialize(() => {
       album_name TEXT NOT NULL,
       artist_name TEXT NOT NULL,
       artwork_url TEXT,
+      date_logged TEXT DEFAULT (datetime('now','localtime')),
       rating REAL
     )
   `);

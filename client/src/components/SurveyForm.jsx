@@ -4,9 +4,7 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
 
-  useEffect(() => {
-    setRating(0);
-  }, [album]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,11 +12,9 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       albumId: album.collectionId,
       albumName: album.collectionName,
       artistName: album.artistName,
-      artworkUrl100: album.artworkUrl100,  // ✅ matches backend
+      artworkUrl100: album.artworkUrl100,
       rating,
     };
-
-    console.log('Submitting survey with payload:', payload);
     await fetch('/api/survey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,47 +66,14 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       }}
     >
       {/* Close Button */}
-      <button
-        type="button"
-        onClick={onSubmitted}
-        aria-label="Close"
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: 'none',
-          color: '#94a3b8',
-          fontSize: '1.5rem',
-          cursor: 'pointer',
-          zIndex: 10,
-          width: '2.5rem',
-          height: '2.5rem',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.color = '#f1f5f9';
-          e.target.style.background = 'rgba(239, 68, 68, 0.3)';
-          e.target.style.transform = 'scale(1.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.color = '#94a3b8';
-          e.target.style.background = 'rgba(239, 68, 68, 0.1)';
-          e.target.style.transform = 'scale(1)';
-        }}
-      >
-        ×
+      <button className='survey-close-btn' onClick={onSubmitted} aria-label='close'>
+        &times;
       </button>
 
       {/* Album Info Header */}
       <div style={{
         textAlign: 'center',
-        marginBottom: '2rem',
-        marginTop: '1rem'
+        padding: '1rem 1.25rem'
       }}>
         <h2 style={{
           fontSize: '1.3rem',
@@ -138,8 +101,8 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             src={album.artworkUrl100.replace('100x100', '300x300')}
             alt={`${album.collectionName} artwork`}
             style={{
-              width: '140px',
-              height: '140px',
+              width: '200px',
+              height: '200px',
               borderRadius: '16px',
               margin: '0 auto',
               display: 'block',
@@ -155,15 +118,6 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
         textAlign: 'center',
         marginBottom: '2rem'
       }}>
-        <span style={{
-          fontSize: '1rem',
-          fontWeight: '500',
-          display: 'block',
-          marginBottom: '1.5rem',
-          color: '#e2e8f0'
-        }}>
-          Rate this album
-        </span>
 
         {/* Circular Slider */}
         <div style={{
@@ -320,7 +274,7 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
         )}
 
         {/* Album Summary Card */}
-        <div
+        <div align="center"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -332,31 +286,18 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             marginTop: '0.5rem'
           }}
         >
-          {album.artworkUrl100 && (
-            <img
-              src={album.artworkUrl100.replace('100x100', '60x60')}
-              alt={`${album.collectionName} artwork`}
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: '8px',
-                objectFit: 'cover',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-              }}
-            />
-          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontWeight: '500',
               fontSize: '1rem',
-              marginBottom: '0.25rem',
+              marginBottom: '0.15rem',
               color: '#f1f5f9',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
               {album.collectionName || 'Unknown Album'}
-            </div>
+            </div>  
             <div style={{
               fontSize: '0.85rem',
               color: '#94a3b8',
@@ -372,7 +313,25 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
               color: rating > 0 ? '#10b981' : '#64748b',
               fontWeight: '500'
             }}>
-              Rating: {rating > 0 ? `${rating.toFixed(1)}/10` : 'Not rated'}
+              {album.rating != null ? (
+                <>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: getRatingColor(album.rating) }}>
+                    Rating: {album.rating}/10
+                  </p>
+                  <div className="date-logged-info">
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                      Logged on: {new Date(album.logdatetime).toLocaleDateString()}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.6rem', color: '#94a3b8' }}>
+                      {new Date(album.logdatetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                  Rating: Not rated
+                </p>
+              )}
             </div>
           </div>
         </div>

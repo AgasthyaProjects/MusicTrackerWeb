@@ -24,9 +24,6 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
     onSubmitted?.();
   };
 
-  // Generate rating values from 0.5 to 10 in 0.5 increments
-  const ratingValues = Array.from({ length: 20 }, (_, i) => (i + 1) * 0.5);
-
   const handleRatingClick = (value) => {
     setRating(value);
   };
@@ -51,101 +48,133 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
   const strokeDashoffset = circumference - (activeRating / 10) * circumference;
 
   return (
-
     <div
       style={{
         width: '100%',
-        maxWidth: '400px',
-        aspectRatio: '2/3',
-        backgroundColor: '#23233a',
-        color: '#f0f0f0',
+        maxWidth: '420px',
+        background: 'rgba(15, 23, 42, 0.98)',
+        backdropFilter: 'blur(20px)',
+        color: '#e2e8f0',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
         padding: '2rem',
-        borderRadius: '16px',
-        border: 'none',
-        margin: '-2rem -2.5rem',
-        position: 'relative'
+        borderRadius: '24px',
+        border: '2px solid rgba(96, 165, 250, 0.2)',
+        position: 'relative',
+        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(148, 163, 184, 0.1)',
+        maxHeight: '90vh',
+        overflowY: 'auto'
       }}
     >
+      {/* Close Button */}
       <button
         type="button"
         onClick={onSubmitted}
         aria-label="Close"
         style={{
           position: 'absolute',
-          top: '-0.8rem',
-          right: '-2rem',
-          background: 'transparent',
+          top: '1rem',
+          right: '1rem',
+          background: 'rgba(239, 68, 68, 0.1)',
           border: 'none',
-          color: '#aaa',
-          fontSize: '1.3rem',
+          color: '#94a3b8',
+          fontSize: '1.5rem',
           cursor: 'pointer',
-          zIndex: 2,
+          zIndex: 10,
+          width: '2.5rem',
+          height: '2.5rem',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.color = '#f1f5f9';
+          e.target.style.background = 'rgba(239, 68, 68, 0.3)';
+          e.target.style.transform = 'scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.color = '#94a3b8';
+          e.target.style.background = 'rgba(239, 68, 68, 0.1)';
+          e.target.style.transform = 'scale(1)';
         }}
       >
-        &times;
+        ×
       </button>
-      {/* Album info header */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+
+      {/* Album Info Header */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: '2rem', 
+        marginTop: '1rem' 
+      }}>
         <h2 style={{
-          fontSize: '1.25rem',
-          fontWeight: '400',
+          fontSize: '1.3rem',
+          fontWeight: '600',
           letterSpacing: '0.025em',
           marginBottom: '0.5rem',
-          color: '#f0f0f0'
+          color: '#f1f5f9',
+          lineHeight: '1.3'
         }}>
           {album.collectionName || 'Unknown Album'}
         </h2>
+        
         <p style={{
-          fontSize: '0.9rem',
-          fontWeight: '300',
-          color: '#aaa',
+          fontSize: '0.95rem',
+          fontWeight: '400',
+          color: '#94a3b8',
           marginBottom: '1.5rem'
         }}>
           by {album.artistName || 'Unknown Artist'}
         </p>
 
-        {/* Album artwork */}
+        {/* Album Artwork */}
         {album.artworkUrl100 && (
           <img
             src={album.artworkUrl100.replace('100x100', '200x200')}
             alt={`${album.collectionName} artwork`}
             style={{
-              width: '120px',
-              height: '120px',
-              borderRadius: '8px',
+              width: '140px',
+              height: '140px',
+              borderRadius: '16px',
               margin: '0 auto',
               display: 'block',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3)'
             }}
           />
         )}
       </div>
 
-      {/* Circular Rating Slider */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      {/* Rating Section */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: '2rem' 
+      }}>
         <span style={{
           fontSize: '1rem',
-          fontWeight: '300',
+          fontWeight: '500',
           display: 'block',
           marginBottom: '1.5rem',
-          color: '#f0f0f0'
+          color: '#e2e8f0'
         }}>
           Rate this album
         </span>
 
         {/* Circular Slider */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ 
+          position: 'relative', 
+          display: 'inline-block',
+          marginBottom: '1rem'
+        }}>
           <svg width="160" height="160" style={{ transform: 'rotate(-90deg)' }}>
             {/* Background circle */}
             <circle
               cx="80"
               cy="80"
               r="60"
-              stroke="#2c2c3e"
+              stroke="rgba(30, 41, 59, 0.8)"
               strokeWidth="8"
               fill="none"
             />
@@ -154,7 +183,7 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
               cx="80"
               cy="80"
               r="60"
-              stroke={activeRating > 0 ? getRatingColor(activeRating) : '#2c2c3e'}
+              stroke={activeRating > 0 ? getRatingColor(activeRating) : 'rgba(30, 41, 59, 0.8)'}
               strokeWidth="8"
               fill="none"
               strokeLinecap="round"
@@ -204,8 +233,8 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             fontSize: '1.5rem',
-            fontWeight: '300',
-            color: activeRating > 0 ? '#f0f0f0' : '#aaa',
+            fontWeight: '600',
+            color: activeRating > 0 ? '#f1f5f9' : '#64748b',
             pointerEvents: 'none'
           }}>
             {activeRating > 0 ? activeRating.toFixed(1) : '0.0'}
@@ -213,111 +242,138 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
         </div>
       </div>
 
-      {/* Submit button */}
-      <button
-        onClick={handleSubmit}
-        disabled={rating === 0}
-        style={{
-          padding: '0.6rem 1.5rem',
-          fontSize: '0.9rem',
-          fontWeight: '400',
-          letterSpacing: '0.025em',
-          backgroundColor: rating === 0 ? '#2c2c3e' : '#0077cc',
-          color: rating === 0 ? '#aaa' : '#fff',
-          cursor: rating === 0 ? 'not-allowed' : 'pointer',
-          border: 'none',
-          borderRadius: '6px',
-          transition: 'all 0.2s ease'
-        }}
-        onMouseEnter={(e) => {
-          if (rating !== 0) {
-            e.target.style.backgroundColor = '#005fa3';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (rating !== 0) {
-            e.target.style.backgroundColor = '#0077cc';
-          }
-        }}
-      >
-        Submit Rating
-      </button>
-
-      {/* Listen on Apple Music button */}
-      {album.collectionViewUrl && (
-        <a
-          href={album.collectionViewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Submit Button */}
+        <button
+          onClick={handleSubmit}
+          disabled={rating === 0}
           style={{
-            display: 'block',
-            margin: '1.2rem auto 0.5rem auto',
-            padding: '0.6rem 1.5rem',
-            fontSize: '0.9rem',
-            fontWeight: '400',
-            letterSpacing: '0.025em',
-            backgroundColor: '#fa233b',
-            color: '#fff',
+            padding: '0.75rem 2rem',
+            fontSize: '1rem',
+            fontWeight: '600',
+            background: rating === 0 ? 
+              'rgba(55, 65, 81, 0.8)' : 
+              'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            color: rating === 0 ? '#9ca3af' : '#fff',
+            cursor: rating === 0 ? 'not-allowed' : 'pointer',
             border: 'none',
-            borderRadius: '6px',
-            textAlign: 'center',
-            textDecoration: 'none',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer',
-            width: '100%',
-            maxWidth: '260px'
+            borderRadius: '12px',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: rating === 0 ? 'none' : '0 4px 14px rgba(59, 130, 246, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            if (rating !== 0) {
+              e.target.style.background = 'linear-gradient(135deg, #2563eb, #1e40af)';
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (rating !== 0) {
+              e.target.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
+            }
           }}
         >
-          Listen on Apple Music
-        </a>
-      )}
+          Submit Rating
+        </button>
 
-      {/* Update Rating button */}
-      <button
-        type="button"
-        style={{
-          alignItems: 'center',
-          gap: '0.8rem',
-          margin: '0.5rem auto 0',
-          padding: '0.6rem 1.2rem',
-          backgroundColor: '#23233a',
-          color: '#f0f0f0',
-          border: '1px solid #444',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          width: '100%',
-          maxWidth: '320px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        }}
-        onClick={() => {
-          // You can add logic here to open the rating update modal, etc.
-        }}
-      >
-        {album.artworkUrl100 && (
-          <img
-            src={album.artworkUrl100.replace('100x100', '60x60')}
-            alt={`${album.collectionName} artwork`}
+        {/* Apple Music Button */}
+        {album.collectionViewUrl && (
+          <a
+            href={album.collectionViewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '6px',
-              objectFit: 'cover',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.10)'
+              display: 'block',
+              padding: '0.75rem 2rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              background: 'linear-gradient(135deg, #fa233b, #d91e36)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              textAlign: 'center',
+              textDecoration: 'none',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(250, 35, 59, 0.3)'
             }}
-          />
+            onMouseEnter={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #d91e36, #b91c3c)';
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(250, 35, 59, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, #fa233b, #d91e36)';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 14px rgba(250, 35, 59, 0.3)';
+            }}
+          >
+            Listen on Apple Music
+          </a>
         )}
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: '500', fontSize: '1rem', marginBottom: '0.2rem' }}>
-            {album.collectionName || 'Unknown Album'}
-          </div>
-          <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '0.2rem' }}>
-            {album.artistName || 'Unknown Artist'}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: '500' }}>
-            Rating: {rating > 0 ? rating.toFixed(1) : 'Not rated'}
+
+        {/* Album Summary Card */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            padding: '1rem',
+            background: 'rgba(30, 41, 59, 0.8)',
+            border: '1px solid rgba(148, 163, 184, 0.2)',
+            borderRadius: '12px',
+            marginTop: '0.5rem'
+          }}
+        >
+          {album.artworkUrl100 && (
+            <img
+              src={album.artworkUrl100.replace('100x100', '60x60')}
+              alt={`${album.collectionName} artwork`}
+              style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '8px',
+                objectFit: 'cover',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }}
+            />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ 
+              fontWeight: '500', 
+              fontSize: '1rem', 
+              marginBottom: '0.25rem',
+              color: '#f1f5f9',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {album.collectionName || 'Unknown Album'}
+            </div>
+            <div style={{ 
+              fontSize: '0.85rem', 
+              color: '#94a3b8', 
+              marginBottom: '0.25rem',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {album.artistName || 'Unknown Artist'}
+            </div>
+            <div style={{ 
+              fontSize: '0.9rem', 
+              color: rating > 0 ? '#10b981' : '#64748b', 
+              fontWeight: '500' 
+            }}>
+              Rating: {rating > 0 ? `${rating.toFixed(1)}/10` : 'Not rated'}
+            </div>
           </div>
         </div>
-      </button>
+      </div>
     </div>
   );
 }

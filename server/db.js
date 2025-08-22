@@ -16,6 +16,7 @@ db.serialize(() => {
       album_id TEXT PRIMARY KEY,
       album_name TEXT NOT NULL,
       artist_name TEXT NOT NULL,
+      artwork_url TEXT,
       rating REAL
     )
   `);

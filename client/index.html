@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Discover and explore iTunes albums with our sleek, modern interface" />
   <title>iTunes Album Explorer</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎵</text></svg>" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎵</text></svg>" />
   <style>
     * {
       margin: 0;
@@ -61,8 +63,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     /* Header styling */
@@ -125,8 +132,17 @@
     }
 
     @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
-      50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+
+      0%,
+      100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.3;
+      }
+
+      50% {
+        transform: translateY(-20px) rotate(180deg);
+        opacity: 0.8;
+      }
     }
 
     /* Enhanced scrollbar */
@@ -195,8 +211,43 @@
     .footer-link:hover {
       color: #93c5fd;
     }
+
+    .tab-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .tab-button {
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: rgba(30, 41, 59, 0.8);
+      color: #e2e8f0;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    .tab-button:hover {
+      background: rgba(59, 130, 246, 0.9);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+      transform: translateY(-2px);
+    }
   </style>
 </head>
+
 <body>
   <!-- Loading screen -->
   <div class="loading-screen">
@@ -222,14 +273,14 @@
   <div class="app-footer">
     <p class="footer-text">Powered by iTunes Search API</p>
     <p class="footer-text">
-      <a href="#" class="footer-link">About</a> • 
-      <a href="#" class="footer-link">Privacy</a> • 
+      <a href="#" class="footer-link">About</a> •
+      <a href="#" class="footer-link">Privacy</a> •
       <a href="#" class="footer-link">Support</a>
     </p>
   </div>
 
   <script type="module" src="src/main.jsx"></script>
-  
+
   <script>
     // Multiple ways to hide loading screen for better compatibility
     function hideLoadingScreen() {
@@ -238,7 +289,7 @@
 
     // Hide loading screen after DOM is ready
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('DOMContentLoaded', function () {
         setTimeout(hideLoadingScreen, 800);
       });
     } else {
@@ -246,12 +297,12 @@
     }
 
     // Fallback: hide after window load
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
       setTimeout(hideLoadingScreen, 1000);
     });
 
     // Additional fallback: hide after React has likely mounted
-    setTimeout(function() {
+    setTimeout(function () {
       const rootElement = document.getElementById('root');
       if (rootElement && rootElement.children.length > 0) {
         hideLoadingScreen();
@@ -262,7 +313,7 @@
     setTimeout(hideLoadingScreen, 4000);
 
     // Check for React content periodically
-    const checkInterval = setInterval(function() {
+    const checkInterval = setInterval(function () {
       const rootElement = document.getElementById('root');
       if (rootElement && rootElement.children.length > 0) {
         setTimeout(hideLoadingScreen, 500);
@@ -271,7 +322,7 @@
     }, 100);
 
     // Add some interactive particles on mouse move
-    document.addEventListener('mousemove', function(e) {
+    document.addEventListener('mousemove', function (e) {
       if (Math.random() > 0.98) {
         createTemporaryParticle(e.clientX, e.clientY);
       }
@@ -289,9 +340,9 @@
       particle.style.pointerEvents = 'none';
       particle.style.animation = 'fadeOut 1s ease-out forwards';
       particle.style.transform = 'translate(-50%, -50%)';
-      
+
       document.body.appendChild(particle);
-      
+
       setTimeout(() => {
         particle.remove();
       }, 1000);
@@ -314,4 +365,5 @@
     document.head.appendChild(style);
   </script>
 </body>
+
 </html>

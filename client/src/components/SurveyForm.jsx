@@ -14,8 +14,11 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       albumId: album.collectionId,
       albumName: album.collectionName,
       artistName: album.artistName,
+      artworkUrl100: album.artworkUrl100,  // ✅ matches backend
       rating,
     };
+
+    console.log('Submitting survey with payload:', payload);
     await fetch('/api/survey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,10 +107,10 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       </button>
 
       {/* Album Info Header */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '2rem', 
-        marginTop: '1rem' 
+      <div style={{
+        textAlign: 'center',
+        marginBottom: '2rem',
+        marginTop: '1rem'
       }}>
         <h2 style={{
           fontSize: '1.3rem',
@@ -119,7 +122,7 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
         }}>
           {album.collectionName || 'Unknown Album'}
         </h2>
-        
+
         <p style={{
           fontSize: '0.95rem',
           fontWeight: '400',
@@ -132,7 +135,7 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
         {/* Album Artwork */}
         {album.artworkUrl100 && (
           <img
-            src={album.artworkUrl100.replace('100x100', '200x200')}
+            src={album.artworkUrl100.replace('100x100', '300x300')}
             alt={`${album.collectionName} artwork`}
             style={{
               width: '140px',
@@ -148,9 +151,9 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       </div>
 
       {/* Rating Section */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '2rem' 
+      <div style={{
+        textAlign: 'center',
+        marginBottom: '2rem'
       }}>
         <span style={{
           fontSize: '1rem',
@@ -163,8 +166,8 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
         </span>
 
         {/* Circular Slider */}
-        <div style={{ 
-          position: 'relative', 
+        <div style={{
+          position: 'relative',
           display: 'inline-block',
           marginBottom: '1rem'
         }}>
@@ -252,8 +255,8 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             padding: '0.75rem 2rem',
             fontSize: '1rem',
             fontWeight: '600',
-            background: rating === 0 ? 
-              'rgba(55, 65, 81, 0.8)' : 
+            background: rating === 0 ?
+              'rgba(55, 65, 81, 0.8)' :
               'linear-gradient(135deg, #3b82f6, #1d4ed8)',
             color: rating === 0 ? '#9ca3af' : '#fff',
             cursor: rating === 0 ? 'not-allowed' : 'pointer',
@@ -343,9 +346,9 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ 
-              fontWeight: '500', 
-              fontSize: '1rem', 
+            <div style={{
+              fontWeight: '500',
+              fontSize: '1rem',
               marginBottom: '0.25rem',
               color: '#f1f5f9',
               whiteSpace: 'nowrap',
@@ -354,9 +357,9 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             }}>
               {album.collectionName || 'Unknown Album'}
             </div>
-            <div style={{ 
-              fontSize: '0.85rem', 
-              color: '#94a3b8', 
+            <div style={{
+              fontSize: '0.85rem',
+              color: '#94a3b8',
               marginBottom: '0.25rem',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -364,10 +367,10 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             }}>
               {album.artistName || 'Unknown Artist'}
             </div>
-            <div style={{ 
-              fontSize: '0.9rem', 
-              color: rating > 0 ? '#10b981' : '#64748b', 
-              fontWeight: '500' 
+            <div style={{
+              fontSize: '0.9rem',
+              color: rating > 0 ? '#10b981' : '#64748b',
+              fontWeight: '500'
             }}>
               Rating: {rating > 0 ? `${rating.toFixed(1)}/10` : 'Not rated'}
             </div>
@@ -376,12 +379,4 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       </div>
     </div>
   );
-}
-
-// Example: After rating is submitted
-async function refreshAlbumRating(albumId) {
-  const res = await fetch(`/api/survey/${albumId}`);
-  const data = await res.json();
-  // Update your album state with the new rating
-  // e.g., setAlbum({ ...album, rating: data.rating });
 }

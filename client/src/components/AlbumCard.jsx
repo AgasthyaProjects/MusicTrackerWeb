@@ -1,3 +1,24 @@
+const fetchAlbumDetails = async (collectionId) => {
+
+  try {
+    const res = await fetch(
+      `https://itunes.apple.com/lookup?id=${collectionId}&entity=song`
+    );
+    const data = await res.json();
+
+    if (data.resultCount > 0) {
+      const albumInfo = data.results[0];
+      const tracks = data.results.slice(1);
+
+      return { albumInfo, tracks };
+    }
+    return null;
+  } catch (err) {
+    console.error('Error fetching album details:', err);
+    return null;
+  }
+};
+
 export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDeleteMode, isSelected, onSelect }) {
   const handleAppleMusicClick = (e) => {
     e.preventDefault();
@@ -10,6 +31,12 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
       e.preventDefault();
       e.stopPropagation();
       onSelect?.();
+    } else {
+      fetchAlbumDetails(album.collectionId).then((details) => {
+        if (details && details.tracks) {
+          setShowBack(true);
+        }
+      });
     }
   };
 

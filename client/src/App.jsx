@@ -3,6 +3,7 @@ import { searchAlbums } from './api/itunes';
 import AlbumCard from './components/AlbumCard';
 import SurveyForm from './components/SurveyForm';
 import './styles/App.css';
+import ConfirmPopup from './Popup/ConfirmPopup';
 
 export default function App() {
   const [query, setQuery] = useState('');
@@ -16,12 +17,15 @@ export default function App() {
   const [sortOrder, setSortOrder] = useState('desc');   // "asc" or "desc"
   const [selectedAlbumIds, setSelectedAlbumIds] = useState(new Set()); // for multi-select
   const [isDeleteMode, setIsDeleteMode] = useState(false); // toggle delete mode
+  const [showConfirm, setShowConfirm] = useState(false);
+
 
   useEffect(() => {
     fetchRatings();
   }, []);
 
-  // ✅ Fetch logged albums + build ratingsMap using BOTH album name AND collection ID as keys
+
+
   const fetchRatings = async () => {
     try {
       const res = await fetch('/api/survey/rated');
@@ -119,7 +123,6 @@ export default function App() {
               updatedRatingsMap[String(album.collectionId)] ||
               updatedRatingsMap[album.collectionName?.trim()] ||
               null;
-
             console.log('Updated album rating:', updatedRating, 'for', album.collectionName);
 
             return { ...album, rating: updatedRating };
@@ -145,7 +148,6 @@ export default function App() {
     });
   };
 
-  // ✅ Select all albums
   const handleSelectAll = () => {
     if (selectedAlbumIds.size === loggedAlbums.length) {
       setSelectedAlbumIds(new Set()); // Deselect all
@@ -154,43 +156,56 @@ export default function App() {
     }
   };
 
-  // ✅ Delete selected albums
-  const handleDeleteSelected = async () => {
-    console.log('Deleting selected albums:', selectedAlbumIds);
+
+  const handleDeleteSelected = () => {
     if (selectedAlbumIds.size === 0) return;
-    console.log('Selected IDs:', Array.from(selectedAlbumIds));
-
-    const confirmMessage = selectedAlbumIds.size === 1
-      ? 'Are you sure you want to delete this album rating?'
-      : `Are you sure you want to delete ${selectedAlbumIds.size} album ratings?`;
-
-    console.log('Confirm message:', confirmMessage);
-    const confirmed = prompt(confirmMessage + ' Type YES to confirm') === 'YES';
-    if (!confirmed) return;
-
-    if (!window.confirm(confirmMessage)) return;
-
-    try {
-      // Send delete requests for each selected album
-      const deletePromises = Array.from(selectedAlbumIds).map(albumId =>
-        fetch(`/api/survey/${albumId}`, { method: 'DELETE' })
-      );
-
-      await Promise.all(deletePromises);
-
-      // Refresh the data
-      await fetchRatings();
-
-      // Clear selections and exit delete mode
-      setSelectedAlbumIds(new Set());
-      setIsDeleteMode(false);
-
-      console.log('Successfully deleted', selectedAlbumIds.size, 'album ratings');
-    } catch (error) {
-      console.error('Failed to delete album ratings:', error);
-      alert('Failed to delete some album ratings. Please try again.');
-    }
+    setShowConfirm(true);
   };
+
+  const confirmDelete = async () => {
+  try {
+    // 1️⃣ Delete all selected albums
+    await Promise.all(
+      Array.from(selectedAlbumIds).map(albumId =>
+        fetch(`/api/survey/${albumId}`, { method: 'DELETE' })
+      )
+    );
+    // 2️⃣ Get fresh ratings map from backend
+    const updatedRatingsMap = await fetchRatings();
+    
+    setAlbums(prevAlbums =>
+      prevAlbums.map(album => {
+        console.log(selectedAlbumIds, album.collectionId);
+        if (selectedAlbumIds.has(String(album.collectionId))) {
+
+          console.log('Updating rating for deleted album:')
+          const updatedRating =
+            updatedRatingsMap[album.collectionName] ||
+            updatedRatingsMap[String(album.collectionId)] ||
+            updatedRatingsMap[album.collectionName?.trim()] ||
+            null;
+          return { ...album, rating: updatedRating };
+        }
+        return album;
+      })
+    );
+
+    // 4️⃣ Clear selections & modes
+    setSelectedAlbumIds(new Set());
+    setIsDeleteMode(false);
+
+    console.log('Deleted successfully:', Array.from(selectedAlbumIds));
+
+  } catch (err) {
+    console.error('Delete failed:', err);
+  } finally {
+    setShowConfirm(false);
+  }
+};
+
+
+
+
 
   // ✅ Cancel delete mode
   const handleCancelDelete = () => {
@@ -422,6 +437,19 @@ export default function App() {
           )}
         </section>
       )}
+
+      {showConfirm && (
+  <ConfirmPopup
+    message={
+      selectedAlbumIds.size === 1
+        ? 'Are you sure you want to delete this album?'
+        : `Are you sure you want to delete these ${selectedAlbumIds.size} albums?`
+    }
+    onConfirm={confirmDelete}
+    onCancel={() => setShowConfirm(false)}
+  />
+)}
+
 
       {/* Survey Modal */}
       {showSurvey && selectedAlbum && (

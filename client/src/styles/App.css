@@ -23,6 +23,7 @@ h1 {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.02em;
+  text-align: center;
 }
 
 .search-bar {
@@ -31,17 +32,20 @@ h1 {
   margin-bottom: 3rem;
   max-width: 500px;
   width: 100%;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* Search container and form styling */
 .search-container,
-.search-form,
-.search-bar {
+.search-form {
   display: flex !important;
   gap: 1rem;
   margin-bottom: 1.5rem;
   max-width: 500px;
   width: 100%;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 input[type="text"],
@@ -222,12 +226,6 @@ button:active,
   transform: translateX(4px);
 }
 
-.album-card a::after {
-  content: '↗';
-  font-size: 0.75rem;
-  opacity: 0.7;
-}
-
 /* Rating button styles */
 .album-card button[style*="width: 100%"] {
   margin-top: 1rem;
@@ -257,10 +255,6 @@ button:active,
   color: #9ca3af !important;
   cursor: not-allowed !important;
 }
-
-
-
-
 
 /* Survey Form Container */
 .survey-form-container {
@@ -530,7 +524,9 @@ button:active,
     padding: 1rem;
   }
   
-  .search-bar {
+  .search-bar,
+  .search-container,
+  .search-form {
     flex-direction: column;
     max-width: none;
   }

@@ -229,7 +229,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <h1>🎵 iTunes Album Explorer</h1>
 
       {/* Tab Buttons */}
       <div className="tab-buttons">

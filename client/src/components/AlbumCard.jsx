@@ -1,5 +1,6 @@
-const fetchAlbumDetails = async (collectionId) => {
+import { useState } from 'react';
 
+const fetchAlbumDetails = async (collectionId) => {
   try {
     const res = await fetch(
       `https://itunes.apple.com/lookup?id=${collectionId}&entity=song`
@@ -20,26 +21,254 @@ const fetchAlbumDetails = async (collectionId) => {
 };
 
 export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDeleteMode, isSelected, onSelect }) {
+  const [showBack, setShowBack] = useState(false);
+  const [tracks, setTracks] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const handleAppleMusicClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     window.open(album.collectionViewUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleCardClick = (e) => {
+  const handleCardClick = async (e) => {
     if (isDeleteMode) {
       e.preventDefault();
       e.stopPropagation();
       onSelect?.();
-    } else {
-      fetchAlbumDetails(album.collectionId).then((details) => {
-        if (details && details.tracks) {
-          setShowBack(true);
-        }
-      });
+      return;
+    }
+
+    // Don't flip if clicking on buttons or links
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (showBack) {
+      setShowBack(false);
+      return;
+    }
+
+    setLoading(true);
+    const details = await fetchAlbumDetails(album.collectionId);
+    setLoading(false);
+
+    if (details && details.tracks) {
+      setTracks(details.tracks);
+      setShowBack(true);
     }
   };
 
+  const formatDuration = (milliseconds) => {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Show loading overlay
+  if (loading) {
+    return (
+      <div
+        className="album-card"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          position: 'relative',
+          cursor: 'wait',
+          transform: isSelected ? 'scale(0.95)' : 'scale(1)',
+          opacity: 0.7,
+          transition: 'all 0.2s ease',
+          border: isSelected ? '2px solid #ef4444' : '2px solid transparent',
+          borderRadius: '18px',
+          padding: isSelected ? '0.5rem' : '0',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#1e293b'
+        }}
+      >
+        <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Loading tracklist...</div>
+      </div>
+    );
+  }
+
+  // Show tracklist (back side)
+  if (showBack && tracks.length > 0) {
+    return (
+      <div
+        className="album-card"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          position: 'relative',
+          cursor: 'pointer',
+          transform: isSelected ? 'scale(0.95)' : 'scale(1)',
+          opacity: isDeleteMode && !isSelected ? 0.6 : 1,
+          transition: 'all 0.2s ease',
+          border: isSelected ? '2px solid #ef4444' : '2px solid transparent',
+          borderRadius: '18px',
+          padding: isSelected ? '0.5rem' : '0'
+        }}
+        onClick={handleCardClick}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            backgroundColor: '#1e293b',
+            borderRadius: '16px',
+            padding: '1rem',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)'
+          }}
+        >
+          {/* Header */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <h3 style={{
+                fontWeight: '700',
+                fontSize: '1.1rem',
+                color: '#f1f5f9',
+                margin: 0,
+                flex: 1,
+                minWidth: 0
+              }}>
+                {album.collectionName}
+              </h3>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowBack(false);
+                }}
+                style={{
+                  background: 'rgba(148, 163, 184, 0.2)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                  fontSize: '16px',
+                  flexShrink: 0,
+                  marginLeft: '0.5rem',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(148, 163, 184, 0.3)';
+                  e.target.style.color = '#f1f5f9';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(148, 163, 184, 0.2)';
+                  e.target.style.color = '#94a3b8';
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#94a3b8',
+              margin: 0
+            }}>
+              {album.artistName}
+            </p>
+          </div>
+
+          {/* Tracklist */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            marginBottom: '1rem'
+          }}>
+            {tracks.map((track, index) => (
+              <div
+                key={track.trackId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0.5rem 0',
+                  borderBottom: index < tracks.length - 1 ? '1px solid rgba(148, 163, 184, 0.1)' : 'none'
+                }}
+              >
+                <span style={{
+                  fontSize: '0.8rem',
+                  color: '#64748b',
+                  minWidth: '2rem',
+                  textAlign: 'right',
+                  marginRight: '0.75rem'
+                }}>
+                  {track.trackNumber || index + 1}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: '#f1f5f9',
+                    margin: 0,
+                    fontWeight: '500',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {track.trackName}
+                  </p>
+                </div>
+                {track.trackTimeMillis && (
+                  <span style={{
+                    fontSize: '0.8rem',
+                    color: '#64748b',
+                    marginLeft: '0.5rem',
+                    flexShrink: 0
+                  }}>
+                    {formatDuration(track.trackTimeMillis)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Back to front button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowBack(false);
+            }}
+            style={{
+              padding: '0.75rem 1rem',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              borderRadius: '12px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: '#475569',
+              color: '#fff',
+              transition: 'all 0.2s ease',
+              marginTop: 'auto'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#334155';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#475569';
+            }}
+          >
+            ← Back to Album
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show front side (default album card)
   return (
     <div
       className="album-card"
@@ -48,7 +277,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
         flexDirection: 'column',
         height: '100%',
         position: 'relative',
-        cursor: isDeleteMode ? 'pointer' : 'default',
+        cursor: isDeleteMode ? 'pointer' : 'pointer',
         transform: isSelected ? 'scale(0.95)' : 'scale(1)',
         opacity: isDeleteMode && !isSelected ? 0.6 : 1,
         transition: 'all 0.2s ease',
@@ -152,9 +381,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             rel="noopener noreferrer"
             onClick={handleAppleMusicClick}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
+              display: 'inline-block', // instead of inline-flex
               marginBottom: '0.75rem',
               fontSize: '0.85rem',
               color: '#60a5fa',
@@ -163,6 +390,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
               fontWeight: '500',
               padding: '0.25rem 0'
             }}
+
             onMouseEnter={(e) => {
               e.target.style.color = '#93c5fd';
               e.target.style.transform = 'translateX(4px)';
@@ -173,7 +401,6 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             }}
           >
             Listen on Apple Music
-            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>↗</span>
           </a>
         )}
 

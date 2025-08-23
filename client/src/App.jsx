@@ -18,13 +18,13 @@ export default function App() {
   const [selectedAlbumIds, setSelectedAlbumIds] = useState(new Set()); // for multi-select
   const [isDeleteMode, setIsDeleteMode] = useState(false); // toggle delete mode
   const [showConfirm, setShowConfirm] = useState(false);
+  const [hoveredRating, setHoveredRating] = useState(null);
+  const [clickedRating, setClickedRating] = useState(null); // persist selection on click
 
 
   useEffect(() => {
     fetchRatings();
   }, []);
-
-
 
   const fetchRatings = async () => {
     try {
@@ -59,8 +59,6 @@ export default function App() {
       return {};
     }
   };
-
-  // ✅ Search and enrich with ratings - try multiple lookup strategies
   const handleSearch = async () => {
     const results = await searchAlbums(query);
 
@@ -90,7 +88,7 @@ export default function App() {
 
     // Always fetch fresh data from backend to get both rating and logdatetime
     try {
-      const res = await fetch(`/api/survey/individual/${album.collectionId}`); 
+      const res = await fetch(`/api/survey/individual/${album.collectionId}`);
       if (res.ok) {
         const data = await res.json();
         rating = data.rating ?? null;
@@ -114,6 +112,7 @@ export default function App() {
     setSelectedAlbum({ ...album, rating, logdatetime });
     setShowSurvey(true);
   };
+
   const handleSurveyClose = async () => {
     if (selectedAlbum) {
 
@@ -141,7 +140,6 @@ export default function App() {
     setSelectedAlbum(null);
   };
 
-  // ✅ Handle album selection for deletion
   const handleAlbumSelect = (albumId) => {
     setSelectedAlbumIds(prev => {
       const newSet = new Set(prev);
@@ -161,7 +159,6 @@ export default function App() {
       setSelectedAlbumIds(new Set(loggedAlbums.map(album => album.collectionId))); // Select all
     }
   };
-
 
   const handleDeleteSelected = () => {
     if (selectedAlbumIds.size === 0) return;
@@ -209,11 +206,6 @@ export default function App() {
     }
   };
 
-
-
-
-
-  // ✅ Cancel delete mode
   const handleCancelDelete = () => {
     setSelectedAlbumIds(new Set());
     setIsDeleteMode(false);
@@ -256,38 +248,44 @@ export default function App() {
         >
           Logged Albums
         </button>
+        <button
+          onClick={() => setActiveTab('stats')}
+          className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
+        >
+          Stats
+        </button>
       </div>
 
       {/* Search Tab */}
-     {activeTab === 'search' && (
-  <section>
-    <form
-      className="search-bar"
-      onSubmit={(e) => {
-        e.preventDefault(); // Prevent page reload
-        handleSearch();     // Trigger search
-      }}
-    >
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search for albums..."
-      />
-      <button className="search-button" type="submit">Search</button>
-    </form>
+      {activeTab === 'search' && (
+        <section>
+          <form
+            className="search-bar"
+            onSubmit={(e) => {
+              e.preventDefault(); // Prevent page reload
+              handleSearch();     // Trigger search
+            }}
+          >
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search for albums..."
+            />
+            <button className="search-button" type="submit">Search</button>
+          </form>
 
-    <div className="album-grid">
-      {albums.map((album) => (
-        <AlbumCard
-          key={album.collectionId}
-          album={album}
-          onOpenSurvey={() => handleOpenSurvey(album)}
-        />
-      ))}
-    </div>
-  </section>
-)}
+          <div className="album-grid">
+            {albums.map((album) => (
+              <AlbumCard
+                key={album.collectionId}
+                album={album}
+                onOpenSurvey={() => handleOpenSurvey(album)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
 
       {/* Logged Albums Tab */}
@@ -458,6 +456,500 @@ export default function App() {
                 ))}
               </div>
             </>
+          )}
+        </section>
+      )}
+
+      {/* Stats Tab */}
+      {/* Stats Tab */}
+      {activeTab === 'stats' && (
+        <section>
+          <h2>Statistics</h2>
+          {loggedAlbums.length === 0 ? (
+            <p>No albums logged yet. Start rating some albums to see statistics!</p>
+          ) : (
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                padding: '2rem',
+                borderRadius: '20px',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                marginBottom: '2rem',
+                border: '1px solid rgba(148, 163, 184, 0.2)'
+              }}>
+                <h3 style={{
+                  marginBottom: '1.5rem',
+                  color: '#f8fafc',
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}>
+                  Albums by Rating
+                </h3>
+
+                {/* Interactive Chart Layout */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 350px',
+                  gap: '2rem',
+                  minHeight: '400px'
+                }}>
+
+                  {/* Bar Chart - Left Side */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                    border: '1px solid rgba(71, 85, 105, 0.3)',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'end',
+                      gap: '0.25rem',
+                      height: '300px',
+                      padding: '1rem 0',
+                      overflowX: 'auto',
+                      overflowY: 'visible'
+                    }}>
+                      {Array.from({ length: 20 }, (_, i) => (i + 1) * 0.5).map(rating => {
+                        const albumsAtRating = loggedAlbums.filter(album => album.rating === rating);
+                        const count = albumsAtRating.length;
+                        const allRatings = Array.from({ length: 20 }, (_, i) => (i + 1) * 0.5);
+                        const maxCount = Math.max(...allRatings.map(r =>
+                          loggedAlbums.filter(album => album.rating === r).length
+                        ));
+                        const height = maxCount > 0 ? (count / maxCount) * 200 : 0;
+                        const isHovered = hoveredRating === rating;
+                        const isClicked = clickedRating === rating;
+                        const isActive = isHovered || isClicked;
+
+                        // Color gradient from red to green based on rating
+                        const getColor = (rating) => {
+                          if (rating <= 2) return ['#ef4444', '#dc2626']; // Red
+                          if (rating <= 4) return ['#f97316', '#ea580c']; // Orange
+                          if (rating <= 6) return ['#eab308', '#ca8a04']; // Yellow
+                          if (rating <= 8) return ['#22c55e', '#16a34a']; // Light Green
+                          return ['#10b981', '#059669']; // Green
+                        };
+
+                        const [color1, color2] = getColor(rating);
+
+                        return (
+                          <div key={rating} style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            minWidth: '32px',
+                            position: 'relative'
+                          }}>
+                            {/* Count label on top */}
+                            <div style={{
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              color: '#e2e8f0',
+                              marginBottom: '0.25rem',
+                              minHeight: '1rem'
+                            }}>
+                              {count > 0 ? count : ''}
+                            </div>
+
+
+                            {/* Bar */}
+                            <div
+                              style={{
+                                width: '100%',
+                                height: `${height}px`,
+                                background: `linear-gradient(135deg, ${color1}, ${color2})`,
+                                borderRadius: '4px 4px 0 0',
+                                transition: 'all 0.3s ease',
+                                cursor: count > 0 ? 'pointer' : 'default',
+                                boxShadow: height > 0 ? (isActive ? '0 4px 12px rgba(0,0,0,0.25)' : '0 2px 4px rgba(0,0,0,0.15)') : 'none',
+                                minHeight: '2px',
+                                transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                                opacity: count === 0 ? 0.3 : ((hoveredRating === null && clickedRating === null) || isActive ? 1 : 0.6),
+                                border: isClicked ? '2px solid #3b82f6' : 'none'
+                              }}
+                              onMouseEnter={() => count > 0 && setHoveredRating(rating)}
+                              onMouseLeave={() => setHoveredRating(null)}
+                              onClick={() => count > 0 && setClickedRating(clickedRating === rating ? null : rating)}
+                            />
+
+                            {/* Rating label */}
+                            <div style={{
+                              fontSize: '0.7rem',
+                              fontWeight: '500',
+                              color: isClicked ? '#60a5fa' : '#cbd5e1',
+                              marginTop: '0.5rem',
+                              transform: 'rotate(-45deg)',
+                              transformOrigin: 'center',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {rating}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Album Details - Right Side */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                    border: '1px solid rgba(71, 85, 105, 0.3)',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    {(hoveredRating === null && clickedRating === null) ? (
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        color: '#94a3b8',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{
+                          fontSize: '3rem',
+                          marginBottom: '1rem',
+                          opacity: 0.7
+                        }}>
+                          📊
+                        </div>
+                        <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '500', color: '#e2e8f0' }}>
+                          Hover or click a bar
+                        </p>
+                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                          Click to keep the list persistent
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        {(() => {
+                          const displayRating = clickedRating || hoveredRating;
+                          return (
+                            <>
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '1rem'
+                              }}>
+                                <h4 style={{
+                                  margin: 0,
+                                  color: '#f8fafc',
+                                  fontSize: '1.2rem',
+                                  fontWeight: '600',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem'
+                                }}>
+                                  Rating {displayRating} ⭐
+                                  <span style={{
+                                    fontSize: '0.9rem',
+                                    fontWeight: '400',
+                                    color: '#94a3b8'
+                                  }}>
+                                    ({loggedAlbums.filter(album => album.rating === displayRating).length} albums)
+                                  </span>
+                                </h4>
+                                {clickedRating && (
+                                  <button
+                                    onClick={() => setClickedRating(null)}
+                                    style={{
+                                      background: 'rgba(71, 85, 105, 0.4)',
+                                      border: 'none',
+                                      fontSize: '1.2rem',
+                                      cursor: 'pointer',
+                                      color: '#94a3b8',
+                                      padding: '0.4rem',
+                                      borderRadius: '6px',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.background = 'rgba(71, 85, 105, 0.6)';
+                                      e.target.style.color = '#e2e8f0';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.background = 'rgba(71, 85, 105, 0.4)';
+                                      e.target.style.color = '#94a3b8';
+                                    }}
+                                    title="Close album list"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+
+                              <div style={{
+                                maxHeight: '280px',
+                                overflowY: 'auto',
+                                paddingRight: '0.5rem'
+                              }}>
+                                {loggedAlbums
+                                  .filter(album => album.rating === displayRating)
+                                  .sort((a, b) => a.collectionName.localeCompare(b.collectionName))
+                                  .map((album, index) => (
+                                    <div key={album.collectionId} style={{
+                                      padding: '0.75rem',
+                                      background: 'rgba(30, 41, 59, 0.4)',
+                                      borderRadius: '10px',
+                                      marginBottom: '0.5rem',
+                                      border: '1px solid rgba(71, 85, 105, 0.3)',
+                                      transition: 'all 0.2s ease',
+                                      backdropFilter: 'blur(5px)'
+                                    }}>
+                                      <div style={{
+                                        fontWeight: '600',
+                                        color: '#f8fafc',
+                                        fontSize: '0.95rem',
+                                        marginBottom: '0.25rem',
+                                        lineHeight: '1.4'
+                                      }}>
+                                        {album.collectionName}
+                                      </div>
+                                      <div style={{
+                                        color: '#cbd5e1',
+                                        fontSize: '0.85rem',
+                                        fontStyle: 'italic'
+                                      }}>
+                                        by {album.artistName}
+                                      </div>
+                                      {album.genre && (
+                                        <div style={{
+                                          color: '#94a3b8',
+                                          fontSize: '0.75rem',
+                                          marginTop: '0.25rem'
+                                        }}>
+                                          {album.genre}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Summary Stats */}
+                <div style={{
+                  marginTop: '2rem',
+                  padding: '2rem',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderRadius: '16px',
+                  boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                  border: '1px solid rgba(71, 85, 105, 0.3)',
+                  backdropFilter: 'blur(10px)',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: '1.5rem'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#f8fafc' }}>
+                      {loggedAlbums.length}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontWeight: '500', fontSize: '0.85rem' }}>Total Albums</div>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#f8fafc' }}>
+                      {loggedAlbums.length > 0 ?
+                        (loggedAlbums.reduce((sum, album) => sum + (album.rating || 0), 0) / loggedAlbums.length).toFixed(1)
+                        : '0.0'
+                      }
+                    </div>
+                    <div style={{ color: '#94a3b8', fontWeight: '500', fontSize: '0.85rem' }}>Average Rating</div>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#f8fafc' }}>
+                      {loggedAlbums.filter(album => album.rating == 10).length}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontWeight: '500', fontSize: '0.85rem' }}>Perfect Albums</div>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#f8fafc' }}>
+                      {(() => {
+                        const artists = [...new Set(loggedAlbums.map(album => album.artistName))];
+                        return artists.length;
+                      })()}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontWeight: '500', fontSize: '0.85rem' }}>Unique Artists</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Artists Leaderboard - Separate Section */}
+              <div style={{
+                background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                padding: '2rem',
+                borderRadius: '20px',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(148, 163, 184, 0.2)'
+              }}>
+                <h3 style={{
+                  margin: '0 0 1.5rem 0',
+                  color: '#f8fafc',
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}>
+                  🏆 Top 5 Artists by Album Count
+                </h3>
+
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                  border: '1px solid rgba(71, 85, 105, 0.3)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                  }}>
+                    {(() => {
+                      if (loggedAlbums.length === 0) {
+                        return (
+                          <div style={{
+                            textAlign: 'center',
+                            color: '#94a3b8',
+                            fontSize: '0.9rem',
+                            fontStyle: 'italic',
+                            padding: '2rem'
+                          }}>
+                            No artists to display yet. Start rating some albums!
+                          </div>
+                        );
+                      }
+
+                      // Group albums by artist
+                      const artistStats = {};
+                      loggedAlbums.forEach(album => {
+                        if (!artistStats[album.artistName]) {
+                          artistStats[album.artistName] = {
+                            albumCount: 0,
+                            totalRating: 0,
+                            albums: []
+                          };
+                        }
+                        artistStats[album.artistName].albumCount += 1;
+                        artistStats[album.artistName].totalRating += album.rating || 0;
+                        artistStats[album.artistName].albums.push(album);
+                      });
+
+                      // Sort by album count and take top 5
+                      const topArtists = Object.entries(artistStats)
+                        .map(([name, stats]) => ({
+                          name,
+                          albumCount: stats.albumCount,
+                          averageRating: stats.albumCount > 0 ? (stats.totalRating / stats.albumCount).toFixed(1) : '0.0',
+                          albums: stats.albums
+                        }))
+                        .sort((a, b) => b.albumCount - a.albumCount)
+                        .slice(0, 5);
+
+                      return topArtists.map((artist, index) => (
+                        <div key={artist.name} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '1rem',
+                          background: 'rgba(30, 41, 59, 0.4)',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(71, 85, 105, 0.3)',
+                          backdropFilter: 'blur(5px)',
+                          transition: 'all 0.2s ease'
+                        }}>
+                          {/* Rank */}
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: index === 0 ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' :
+                              index === 1 ? 'linear-gradient(135deg, #9ca3af, #6b7280)' :
+                                index === 2 ? 'linear-gradient(135deg, #d97706, #b45309)' :
+                                  'linear-gradient(135deg, #475569, #334155)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.1rem',
+                            fontWeight: '700',
+                            color: '#fff',
+                            marginRight: '1rem',
+                            flexShrink: 0
+                          }}>
+                            {index + 1}
+                          </div>
+
+                          {/* Artist Info */}
+                          <div style={{
+                            flex: 1,
+                            minWidth: 0
+                          }}>
+                            <div style={{
+                              fontSize: '1.1rem',
+                              fontWeight: '600',
+                              color: '#f8fafc',
+                              marginBottom: '0.25rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {artist.name}
+                            </div>
+                            <div style={{
+                              fontSize: '0.85rem',
+                              color: '#94a3b8'
+                            }}>
+                              {artist.albumCount} album{artist.albumCount !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+
+                          {/* Average Rating */}
+                          <div style={{
+                            textAlign: 'right',
+                            marginLeft: '1rem',
+                            flexShrink: 0
+                          }}>
+                            <div style={{
+                              fontSize: '1.4rem',
+                              fontWeight: '700',
+                              color: '#f8fafc',
+                              marginBottom: '0.1rem'
+                            }}>
+                              {artist.averageRating}
+                            </div>
+                            <div style={{
+                              fontSize: '0.75rem',
+                              color: '#94a3b8',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.2rem'
+                            }}>
+                              ⭐ avg
+                            </div>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </section>
       )}

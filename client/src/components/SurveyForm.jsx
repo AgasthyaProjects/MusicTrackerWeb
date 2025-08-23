@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useDragHandlers } from './useDragHandler';
+
 const formatLogDate = (dateString) => {
   if (!dateString) return null;
 
   try {
     const date = new Date(dateString);
-    // Check if date is valid
     if (isNaN(date.getTime())) return null;
 
     return {
@@ -16,10 +17,44 @@ const formatLogDate = (dateString) => {
     return null;
   }
 };
+
 export default function SurveyForm({ album = {}, onSubmitted }) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [tracks, setTracks] = useState([]);
+  const [loadingTracks, setLoadingTracks] = useState(false);
+  const [favoriteSong, setFavoriteSong] = useState('');
 
+  // Initialize drag handlers
+  const dragHandlers = useDragHandlers(
+    (value) => setRating(value),           // onRatingChange
+    (value) => setHoveredRating(value)     // onRatingHover  
+  );
+
+  // Fetch album tracks when component mounts
+  useEffect(() => {
+    const fetchAlbumTracks = async () => {
+      if (!album.collectionId) return;
+
+      setLoadingTracks(true);
+      try {
+        const res = await fetch(
+          `https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`
+        );
+        const data = await res.json();
+        if (data.resultCount > 0) {
+          const trackList = data.results.slice(1); // Remove album info, keep only tracks
+          setTracks(trackList);
+        }
+      } catch (err) {
+        console.error('Error fetching album tracks:', err);
+      } finally {
+        setLoadingTracks(false);
+      }
+    };
+
+    fetchAlbumTracks();
+  }, [album.collectionId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +67,8 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       releaseDate: album.releaseDate || null,
       trackCount: album.trackCount || null,
       primaryGenreName: album.primaryGenreName || null,
+      favoriteSong: favoriteSong || null, // Add favorite song to payload
+
     };
     await fetch('/api/survey', {
       method: 'POST',
@@ -41,28 +78,13 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
     onSubmitted?.();
   };
 
-  const handleRatingClick = (value) => {
-    setRating(value);
-  };
-
-  const handleRatingHover = (value) => {
-    setHoveredRating(value);
-  };
-
-  const handleRatingLeave = () => {
-    setHoveredRating(0);
-  };
-
   const getRatingColor = (currentRating) => {
-    if (currentRating <= 3) return '#ef4444'; // red for low ratings
-    if (currentRating <= 6) return '#f59e0b'; // yellow for medium ratings
-    return '#10b981'; // green for high ratings
+    if (currentRating <= 3) return '#ef4444';
+    if (currentRating <= 6) return '#f59e0b';
+    return '#10b981';
   };
 
   const activeRating = hoveredRating || rating;
-  const circumference = 2 * Math.PI * 60; // radius of 60
-  const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (activeRating / 10) * circumference;
 
   return (
     <div
@@ -134,8 +156,18 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       {/* Rating Section */}
       <div style={{
         textAlign: 'center',
-        marginBottom: '2rem'
+        marginBottom: '1.5rem',
+        padding: '0 1rem'
       }}>
+        {/* Instruction Text */}
+        <p style={{
+          fontSize: '0.85rem',
+          color: '#94a3b8',
+          marginBottom: '1rem',
+          fontWeight: '400'
+        }}>
+          Click or drag to rate
+        </p>
 
         {/* Circular Slider */}
         <div style={{
@@ -143,61 +175,42 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
           display: 'inline-block',
           marginBottom: '1rem'
         }}>
-          <svg width="160" height="160" style={{ transform: 'rotate(-90deg)' }}>
+          <svg width="180" height="180" style={{ transform: 'rotate(-90deg)' }}>
             {/* Background circle */}
             <circle
-              cx="80"
-              cy="80"
-              r="60"
+              cx="90"
+              cy="90"
+              r="70"
               stroke="rgba(30, 41, 59, 0.8)"
               strokeWidth="8"
               fill="none"
             />
             {/* Progress circle */}
             <circle
-              cx="80"
-              cy="80"
-              r="60"
+              cx="90"
+              cy="90"
+              r="70"
               stroke={activeRating > 0 ? getRatingColor(activeRating) : 'rgba(30, 41, 59, 0.8)'}
               strokeWidth="8"
               fill="none"
               strokeLinecap="round"
-              strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
+              strokeDasharray={2 * Math.PI * 70}
+              strokeDashoffset={2 * Math.PI * 70 - (activeRating / 10) * 2 * Math.PI * 70}
               style={{ transition: 'all 0.3s ease' }}
             />
             {/* Interactive overlay for clicks */}
             <circle
-              cx="80"
-              cy="80"
-              r="60"
+              cx="90"
+              cy="90"
+              r="85"
               stroke="transparent"
-              strokeWidth="20"
+              strokeWidth="30"
               fill="none"
               style={{ cursor: 'pointer' }}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-                let normalizedAngle = (angle + Math.PI / 2) / (2 * Math.PI);
-                if (normalizedAngle < 0) normalizedAngle += 1;
-                const value = Math.max(0.5, Math.min(10, normalizedAngle * 10));
-                const roundedValue = Math.round(value * 2) / 2; // Round to nearest 0.5
-                handleRatingHover(roundedValue);
-              }}
-              onMouseLeave={handleRatingLeave}
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-                let normalizedAngle = (angle + Math.PI / 2) / (2 * Math.PI);
-                if (normalizedAngle < 0) normalizedAngle += 1;
-                const value = Math.max(0.5, Math.min(10, normalizedAngle * 10));
-                const roundedValue = Math.round(value * 2) / 2; // Round to nearest 0.5
-                handleRatingClick(roundedValue);
-              }}
+              onMouseDown={dragHandlers.startCircularDrag}
+              onMouseMove={dragHandlers.handleCircularHover}
+              onMouseLeave={dragHandlers.handleRatingLeave}
+              onClick={dragHandlers.handleCircularClick}
             />
           </svg>
 
@@ -207,14 +220,164 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '1.5rem',
-            fontWeight: '600',
+            fontSize: '1.6rem',
+            fontWeight: '700',
             color: activeRating > 0 ? '#f1f5f9' : '#64748b',
             pointerEvents: 'none'
           }}>
             {activeRating > 0 ? activeRating.toFixed(1) : '0.0'}
           </div>
         </div>
+
+        {/* Horizontal Slider */}
+        <div style={{
+          width: '200px',
+          margin: '0 auto',
+          position: 'relative'
+        }}>
+          <div 
+            data-trackbar
+            style={{
+              height: '8px',
+              background: 'rgba(30, 41, 59, 0.8)',
+              borderRadius: '4px',
+              position: 'relative',
+              cursor: 'pointer'
+            }}
+            onMouseDown={dragHandlers.startHorizontalDrag}
+            onClick={dragHandlers.handleHorizontalClick}
+            onMouseMove={dragHandlers.handleHorizontalHover}
+            onMouseLeave={dragHandlers.handleRatingLeave}
+          >
+            {/* Progress bar */}
+            <div style={{
+              height: '100%',
+              width: `${(activeRating / 10) * 100}%`,
+              background: activeRating > 0 ? getRatingColor(activeRating) : 'rgba(30, 41, 59, 0.8)',
+              borderRadius: '4px',
+              transition: 'all 0.3s ease',
+              pointerEvents: 'none'
+            }} />
+            
+            {/* Slider thumb */}
+            {activeRating > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${(activeRating / 10) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '16px',
+                height: '16px',
+                background: getRatingColor(activeRating),
+                borderRadius: '50%',
+                border: '2px solid #f1f5f9',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.3s ease',
+                pointerEvents: 'none'
+              }} />
+            )}
+          </div>
+          
+          {/* Scale markers */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: '0.5rem',
+            fontSize: '0.7rem',
+            color: '#64748b'
+          }}>
+            <span>1</span>
+            <span>5</span>
+            <span>10</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Favorite Song Dropdown */}
+      <div style={{ marginBottom: '2rem' }}>
+        <label style={{
+          display: 'block',
+          fontSize: '1rem',
+          fontWeight: '500',
+          color: '#e2e8f0',
+          marginBottom: '0.75rem',
+          textAlign: 'center'
+        }}>
+          Favorite Song (Optional)
+        </label>
+
+        {loadingTracks ? (
+          <div style={{
+            padding: '1rem',
+            textAlign: 'center',
+            fontSize: '0.9rem',
+            color: '#94a3b8',
+            background: 'rgba(30, 41, 59, 0.8)',
+            border: '2px solid rgba(148, 163, 184, 0.2)',
+            borderRadius: '12px'
+          }}>
+            Loading tracks...
+          </div>
+        ) : (
+          <select
+            value={favoriteSong}
+            onChange={(e) => setFavoriteSong(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              fontSize: '0.9rem',
+              background: 'rgba(30, 41, 59, 0.8)',
+              color: '#e2e8f0',
+              border: '2px solid rgba(148, 163, 184, 0.2)',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              outline: 'none',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+              backgroundSize: '16px',
+              paddingRight: '3rem'
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#60a5fa';
+              e.target.style.boxShadow = '0 0 0 4px rgba(96, 165, 250, 0.1)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = 'rgba(148, 163, 184, 0.2)';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            <option value="" style={{ background: '#1e293b', color: '#e2e8f0' }}>
+              Select a favorite track...
+            </option>
+            {tracks.map((track, index) => (
+              <option
+                key={track.trackId}
+                value={track.trackName}
+                style={{ background: '#1e293b', color: '#e2e8f0' }}
+              >
+                {track.trackNumber || index + 1}. {track.trackName}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {favoriteSong && (
+          <div style={{
+            marginTop: '0.75rem',
+            padding: '0.75rem',
+            background: 'rgba(16, 185, 129, 0.1)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            color: '#10b981',
+            textAlign: 'center'
+          }}>
+            Favortie Song Selected: {favoriteSong}
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}
@@ -255,41 +418,6 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
           Submit Rating
         </button>
 
-        {/* Apple Music Button */}
-        {album.collectionViewUrl && (
-          <a
-            href={album.collectionViewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block',
-              padding: '0.75rem 2rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              background: 'linear-gradient(135deg, #fa233b, #d91e36)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '12px',
-              textAlign: 'center',
-              textDecoration: 'none',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(250, 35, 59, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #d91e36, #b91c3c)';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(250, 35, 59, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #fa233b, #d91e36)';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 14px rgba(250, 35, 59, 0.3)';
-            }}
-          >
-            Listen on Apple Music
-          </a>
-        )}
 
         {/* Album Summary Card */}
         <div align="center"

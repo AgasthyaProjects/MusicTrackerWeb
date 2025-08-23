@@ -259,29 +259,36 @@ export default function App() {
       </div>
 
       {/* Search Tab */}
-      {activeTab === 'search' && (
-        <section>
-          <div className="search-bar">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for albums..."
-            />
-            <button onClick={handleSearch}>Search</button>
-          </div>
+     {activeTab === 'search' && (
+  <section>
+    <form
+      className="search-bar"
+      onSubmit={(e) => {
+        e.preventDefault(); // Prevent page reload
+        handleSearch();     // Trigger search
+      }}
+    >
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search for albums..."
+      />
+      <button className="search-button" type="submit">Search</button>
+    </form>
 
-          <div className="album-grid">
-            {albums.map((album) => (
-              <AlbumCard
-                key={album.collectionId}
-                album={album}
-                onOpenSurvey={() => handleOpenSurvey(album)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+    <div className="album-grid">
+      {albums.map((album) => (
+        <AlbumCard
+          key={album.collectionId}
+          album={album}
+          onOpenSurvey={() => handleOpenSurvey(album)}
+        />
+      ))}
+    </div>
+  </section>
+)}
+
 
       {/* Logged Albums Tab */}
       {activeTab === 'logged' && (
@@ -439,7 +446,10 @@ export default function App() {
                 {sortedLoggedAlbums.map((album) => (
                   <AlbumCard
                     key={album.collectionId}
-                    album={album}
+                    album={{
+                      ...album,
+                      primaryGenreName: album.genre // map backend field to expected prop
+                    }}
                     onOpenSurvey={() => handleOpenSurvey(album)}
                     isDeleteMode={isDeleteMode}
                     isSelected={selectedAlbumIds.has(album.collectionId)}

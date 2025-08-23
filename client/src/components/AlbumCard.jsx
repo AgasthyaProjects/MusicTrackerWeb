@@ -1,35 +1,49 @@
-import { useState } from 'react';
-
-const fetchAlbumDetails = async (collectionId) => {
-  try {
-    const res = await fetch(
-      `https://itunes.apple.com/lookup?id=${collectionId}&entity=song`
-    );
-    const data = await res.json();
-
-    if (data.resultCount > 0) {
-      const albumInfo = data.results[0];
-      const tracks = data.results.slice(1);
-
-      return { albumInfo, tracks };
-    }
-    return null;
-  } catch (err) {
-    console.error('Error fetching album details:', err);
-    return null;
-  }
-};
+import { useState, useEffect } from 'react';
 
 export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDeleteMode, isSelected, onSelect }) {
   const [showBack, setShowBack] = useState(false);
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const fetchAlbumDetails = async (collectionId) => {
+    try {
+      const res = await fetch(
+        `https://itunes.apple.com/lookup?id=${collectionId}&entity=song`
+      );
+      const data = await res.json();
+      if (data.resultCount > 0) {
+        const albumInfo = data.results[0];
+        const tracks = data.results.slice(1);
+        return { albumInfo, tracks };
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching album details:', err);
+      return null;
+    }
+  };
+
+  // Fetch album details on component mount
+  useEffect(() => {
+    const loadAlbumDetails = async () => {
+      const details = await fetchAlbumDetails(album.collectionId);
+      if (details && details.tracks) {
+        setTracks(details.tracks);
+      }
+      setInitialLoading(false);
+    };
+
+    loadAlbumDetails();
+  }, [album.collectionId]);
 
   const handleAppleMusicClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     window.open(album.collectionViewUrl, '_blank', 'noopener,noreferrer');
   };
+
+  // Update the handleCardClick function in your AlbumCard.jsx:
 
   const handleCardClick = async (e) => {
     if (isDeleteMode) {
@@ -39,9 +53,18 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
       return;
     }
 
-    // Don't flip if clicking on buttons or links
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
-      return;
+    // Don't flip if clicking on buttons, links, or their children
+    if (
+      e.target.tagName === 'BUTTON' ||
+      e.target.tagName === 'A' ||
+      e.target.closest('button') ||
+      e.target.closest('a') ||
+      e.target.closest('.music-platforms') ||
+      e.target.classList.contains('music-platform-btn')
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return; // Don't flip the card
     }
 
     e.preventDefault();
@@ -52,12 +75,17 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
       return;
     }
 
-    setLoading(true);
-    const details = await fetchAlbumDetails(album.collectionId);
-    setLoading(false);
+    // If tracks aren't loaded yet, load them
+    if (tracks.length === 0 && !initialLoading) {
+      setLoading(true);
+      const details = await fetchAlbumDetails(album.collectionId);
+      setLoading(false);
 
-    if (details && details.tracks) {
-      setTracks(details.tracks);
+      if (details && details.tracks) {
+        setTracks(details.tracks);
+        setShowBack(true);
+      }
+    } else if (tracks.length > 0) {
       setShowBack(true);
     }
   };
@@ -66,10 +94,17 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
     const seconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    if (minutes > 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      const songduration = `${hours}h ${mins}m`
+      return songduration;
+    } else {
+      const songduration = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+      return songduration;
+    }
   };
 
-  // Helper function to extract year from release date
   const getReleaseYear = (releaseDate) => {
     if (!releaseDate) return null;
     try {
@@ -79,6 +114,27 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
     }
   };
 
+  const getTotalAlbumDuration = (tracks) => {
+    if (!tracks || tracks.length === 0) return null;
+    const totaldur = tracks.reduce((total, track) => total + (track.trackTimeMillis || 0), 0);
+    const formatted = formatDuration(totaldur);
+    return formatted;
+  };
+  const handleSpotifyClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Construct Spotify search URL
+    const query = encodeURIComponent(`${album.collectionName} ${album.artistName}`);
+    window.open(`https://open.spotify.com/search/${query}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleYouTubeClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Construct YouTube search URL
+    const query = encodeURIComponent(`${album.collectionName} ${album.artistName} full album`);
+    window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener,noreferrer');
+  };
 
   // Show loading overlay
   if (loading) {
@@ -350,6 +406,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
 
       {/* Content that can vary in height */}
       <div style={{
+        textAlign: 'center',
         flex: '1',
         display: 'flex',
         flexDirection: 'column',
@@ -384,14 +441,16 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
 
         {/* Album Details Section */}
         <div style={{
+          alignContent: 'center',
           marginBottom: 'auto',
           paddingBottom: '0.75rem'
         }}>
-          {/* Genre and Year Row */}
-          {(album.primaryGenreName || getReleaseYear(album.releaseDate)) && (
+
+          {(album.primaryGenreName || getReleaseYear(album.releaseDate) || getTotalAlbumDuration(tracks)) && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center', // Center the tags horizontally
               gap: '0.5rem',
               marginBottom: '0.5rem',
               flexWrap: 'wrap'
@@ -422,41 +481,102 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
                   {getReleaseYear(album.releaseDate)}
                 </span>
               )}
+              {getTotalAlbumDuration(tracks) && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#34d399',
+                  backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  border: '1px solid rgba(52, 211, 153, 0.2)'
+                }}>
+                  {getTotalAlbumDuration(tracks)}
+                </span>
+              )}
+              {initialLoading && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#64748b',
+                  backgroundColor: 'rgba(100, 116, 139, 0.1)',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  border: '1px solid rgba(100, 116, 139, 0.2)'
+                }}>
+                  Loading...
+                </span>
+              )}
             </div>
           )}
         </div>
+
+
+        {album.rating && album.favoriteSong && (
+          <div style={{
+            marginTop: '0.75rem',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            padding: '0.75rem',
+            display: 'block',
+            background: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: '10px',
+            position: 'relative',
+            width: 'fit-content', // Explicitly set width to content size
+            minWidth: 'auto', // Override any min-width constraints
+            maxWidth: 'none', // Override any max-width constraints
+            flex: 'none' // Override any flex properties from parent
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: 'fit-content' // Ensure inner container also fits content
+            }}>
+              <span style={{
+                fontSize: '0.8rem',
+                color: '#f59e0b',
+                fontWeight: '600',
+                whiteSpace: 'nowrap' // Prevent text wrapping
+              }}>
+                Favorite Song:
+              </span>
+              <span style={{
+                fontSize: '0.8rem',
+                color: '#f1f5f9',
+                fontWeight: '500',
+                whiteSpace: 'nowrap' // Prevent text wrapping that could affect sizing
+              }}>
+                {album.favoriteSong}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
+
 
       {/* Fixed position elements at bottom */}
       <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
         {!isDeleteMode && (
-          <a
-            href={album.collectionViewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleAppleMusicClick}
-            style={{
-              display: 'inline-block',
-              marginBottom: '0.75rem',
-              fontSize: '0.85rem',
-              color: '#60a5fa',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              fontWeight: '500',
-              padding: '0.25rem 0'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.color = '#93c5fd';
-              e.target.style.transform = 'translateX(4px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = '#60a5fa';
-              e.target.style.transform = 'translateX(0)';
-            }}
-          >
-            Listen on Apple Music
-          </a>
+          <div className="music-platforms">
+            <button className="music-platform-btn apple-music-btn" onClick={handleAppleMusicClick}>
+              <img src="/applelogo.png" alt="Apple Music" />
+            </button>
+
+            <button className="music-platform-btn spotify-btn" onClick={handleSpotifyClick}>
+              <img src="/spotify-icon.png" alt="Spotify" />
+            </button>
+
+            <button className="music-platform-btn youtube-btn" onClick={handleYouTubeClick}>
+              <img src="/youtube-icon.png" alt="YouTube" />
+            </button>
+          </div>
         )}
+
+
+
+
 
         {isDeleteMode ? (
           <div
@@ -488,23 +608,27 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              console.log('Rate button clicked!'); // Add this for debugging
               if (onOpenSurvey) {
                 onOpenSurvey(album);
               }
             }}
             style={{
               display: 'block',
-              width: '100%',
-              padding: '0.75rem 1rem',
+              width: 'calc(100% - 1rem)',
+              margin: '0 auto',
+              padding: '0.875rem 1.25rem',
               fontSize: '0.9rem',
               fontWeight: '600',
-              borderRadius: '12px',
+              borderRadius: '16px',
               border: 'none',
               cursor: 'pointer',
               backgroundColor: album.rating ? '#10b981' : '#3b82f6',
               color: '#fff',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: album.rating ? '0 4px 14px rgba(16, 185, 129, 0.3)' : '0 4px 14px rgba(59, 130, 246, 0.3)'
+              boxShadow: album.rating ? '0 4px 14px rgba(16, 185, 129, 0.3)' : '0 4px 14px rgba(59, 130, 246, 0.3)',
+              zIndex: 10, // Ensure button is above other elements
+              position: 'relative' // Ensure proper stacking context
             }}
             onMouseEnter={(e) => {
               if (album.rating) {
@@ -529,10 +653,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
               }
             }}
           >
-            {album.rating ?
-              `⭐ ${album.rating}/10` :
-              'Rate Album'
-            }
+            {album.rating ? `⭐ ${album.rating}/10` : 'Rate Album'}
           </button>
         )}
       </div>

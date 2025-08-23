@@ -2,9 +2,8 @@ import express from 'express';
 import db from '../db.js';
 const router = express.Router();
 import surveyStore from '../surveyStore.js';
-import { release } from 'os';
 router.post('/', async (req, res) => {
-  const { albumId, albumName, artistName, artworkUrl100, rating, releaseDate, trackCount,primaryGenreName} = req.body;
+  const { albumId, albumName, artistName, artworkUrl100, rating, releaseDate, trackCount,primaryGenreName, favoriteSong} = req.body;
   // ✅ allow rating = 0 but disallow undefined
   if (!albumId || !albumName || !artistName || rating === undefined) {
     return res.status(400).json({ error: 'Missing fields' });
@@ -20,6 +19,7 @@ router.post('/', async (req, res) => {
       releaseDate: releaseDate,
       trackCount: trackCount,
       primaryGenreName: primaryGenreName,
+      favoriteSong: favoriteSong,
     });
     res.json({ success: true });
   } catch (err) {
@@ -37,7 +37,7 @@ router.get('/individual/:albumId', async (req, res) => {
   try {
     db.get(
       `SELECT album_id, album_name, artist_name, artwork_url, date_logged, rating, 
-              release_date, track_count, primary_genre_name 
+              release_date, track_count, primary_genre_name, favorite_song
        FROM survey_responses 
        WHERE album_id = ?`,
       [albumId],
@@ -61,6 +61,7 @@ router.get('/individual/:albumId', async (req, res) => {
           releaseDate: row.release_date,
           trackCount: row.track_count,
           genre: row.primary_genre_name,
+          favoriteSong: row.favorite_song,
         });
 
         console.log('Fetched individual album:', {
@@ -79,7 +80,7 @@ router.get('/individual/:albumId', async (req, res) => {
 router.get('/rated', async (req, res) => {
   try {
     db.all(
-      'SELECT album_id, album_name, artist_name, artwork_url, date_logged,rating, release_date, track_count, primary_genre_name from survey_responses WHERE rating IS NOT NULL ORDER BY date_logged DESC',
+      'SELECT album_id, album_name, artist_name, artwork_url, date_logged,rating, release_date, track_count, primary_genre_name, favorite_song from survey_responses WHERE rating IS NOT NULL ORDER BY date_logged DESC',
       [],
       (err, rows) => {
         if (err) {
@@ -97,6 +98,7 @@ router.get('/rated', async (req, res) => {
             releaseDate: row.release_date,
             trackCount: row.track_count,
             genre: row.primary_genre_name,
+            favoriteSong: row.favorite_song,
           })),
         });
         console.log('Fetched rated albums:', rows);

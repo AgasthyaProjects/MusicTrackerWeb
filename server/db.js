@@ -21,7 +21,8 @@ db.serialize(() => {
       rating REAL,
       release_date TEXT,
       track_count INTEGER,
-      primary_genre_name TEXT
+      primary_genre_name TEXT,
+      favorite_song TEXT
     )
   `);
 

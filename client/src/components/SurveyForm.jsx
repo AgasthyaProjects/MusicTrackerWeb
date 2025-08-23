@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
+const formatLogDate = (dateString) => {
+  if (!dateString) return null;
 
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) return null;
+
+    return {
+      dateString: date.toLocaleDateString(),
+      timeString: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  } catch (error) {
+    console.error('Error formatting date:', error, dateString);
+    return null;
+  }
+};
 export default function SurveyForm({ album = {}, onSubmitted }) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-
 
 
   const handleSubmit = async (e) => {
@@ -14,6 +29,9 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       artistName: album.artistName,
       artworkUrl100: album.artworkUrl100,
       rating,
+      releaseDate: album.releaseDate || null,
+      trackCount: album.trackCount || null,
+      primaryGenreName: album.primaryGenreName || null,
     };
     await fetch('/api/survey', {
       method: 'POST',
@@ -297,7 +315,7 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
               textOverflow: 'ellipsis'
             }}>
               {album.collectionName || 'Unknown Album'}
-            </div>  
+            </div>
             <div style={{
               fontSize: '0.85rem',
               color: '#94a3b8',
@@ -318,14 +336,19 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
                   <p style={{ margin: 0, fontSize: '0.85rem', color: getRatingColor(album.rating) }}>
                     Rating: {album.rating}/10
                   </p>
-                  <div className="date-logged-info">
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-                      Logged on: {new Date(album.logdatetime).toLocaleDateString()}
-                    </p>
-                    <p style={{ margin: 0, fontSize: '0.6rem', color: '#94a3b8' }}>
-                      {new Date(album.logdatetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
+                  {(() => {
+                    const logDateFormatted = formatLogDate(album.logdatetime);
+                    return logDateFormatted ? (
+                      <div className="date-logged-info">
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                          Logged on: {logDateFormatted.dateString}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.6rem', color: '#94a3b8' }}>
+                          {logDateFormatted.timeString}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
                 </>
               ) : (
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>

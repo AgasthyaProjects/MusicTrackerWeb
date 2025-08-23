@@ -30,17 +30,15 @@ export default function App() {
     try {
       const res = await fetch('/api/survey/rated');
       const data = await res.json();
+      console.log('Ratings fetch response:', data);
       const albums = data.albums || [];
+      console.log('Fetched logged albums:', albums);
       setLoggedAlbums(albums);
 
       // Build ratingsMap using both album names AND IDs as keys for better matching
       const map = {};
       albums.forEach(a => {
-        console.log('Processing album from backend:', {
-          collectionName: a.collectionName,
-          collectionId: a.collectionId,
-          rating: a.rating
-        });
+
 
         // Use album name as primary key
         map[a.collectionName] = a.rating;
@@ -67,10 +65,6 @@ export default function App() {
     const results = await searchAlbums(query);
 
     const enriched = results.map((album) => {
-      console.log('Looking up rating for album:', {
-        collectionName: album.collectionName,
-        collectionId: album.collectionId
-      });
 
       // Try multiple lookup strategies
       let rating = ratingsMap[album.collectionName] ||
@@ -84,30 +78,42 @@ export default function App() {
         rating: rating,
       };
     });
-
     setAlbums(enriched);
+    console.log('Enriched search results:', albums)
     setSelectedAlbum(null);
     setShowSurvey(false);
   };
 
   const handleOpenSurvey = async (album) => {
     let rating = album.rating;
+    let logdatetime = album.logdatetime;
 
-    // If rating isn't already present, fetch from backend using ID
-    if (rating == null) {
-      try {
-        const res = await fetch(`/api/survey/${album.collectionId}`);
+    // Always fetch fresh data from backend to get both rating and logdatetime
+    try {
+      const res = await fetch(`/api/survey/individual/${album.collectionId}`); 
+      if (res.ok) {
         const data = await res.json();
         rating = data.rating ?? null;
-      } catch (err) {
-        console.error("Failed to fetch rating", err);
+        logdatetime = data.logdatetime ?? null;
+        console.log('Fresh album data:', {
+          albumName: album.collectionName,
+          rating,
+          logdatetime,
+          fromDatabase: true
+        });
+      } else if (res.status === 404) {
+        // Album not rated yet
+        rating = null;
+        logdatetime = null;
       }
+    } catch (err) {
+      console.error("Failed to fetch album data", err);
+      // Keep original values if fetch fails
     }
 
-    setSelectedAlbum({ ...album, rating });
+    setSelectedAlbum({ ...album, rating, logdatetime });
     setShowSurvey(true);
   };
-
   const handleSurveyClose = async () => {
     if (selectedAlbum) {
 
@@ -163,45 +169,45 @@ export default function App() {
   };
 
   const confirmDelete = async () => {
-  try {
-    // 1️⃣ Delete all selected albums
-    await Promise.all(
-      Array.from(selectedAlbumIds).map(albumId =>
-        fetch(`/api/survey/${albumId}`, { method: 'DELETE' })
-      )
-    );
-    // 2️⃣ Get fresh ratings map from backend
-    const updatedRatingsMap = await fetchRatings();
-    
-    setAlbums(prevAlbums =>
-      prevAlbums.map(album => {
-        console.log(selectedAlbumIds, album.collectionId);
-        if (selectedAlbumIds.has(String(album.collectionId))) {
+    try {
+      // 1️⃣ Delete all selected albums
+      await Promise.all(
+        Array.from(selectedAlbumIds).map(albumId =>
+          fetch(`/api/survey/${albumId}`, { method: 'DELETE' })
+        )
+      );
+      // 2️⃣ Get fresh ratings map from backend
+      const updatedRatingsMap = await fetchRatings();
 
-          console.log('Updating rating for deleted album:')
-          const updatedRating =
-            updatedRatingsMap[album.collectionName] ||
-            updatedRatingsMap[String(album.collectionId)] ||
-            updatedRatingsMap[album.collectionName?.trim()] ||
-            null;
-          return { ...album, rating: updatedRating };
-        }
-        return album;
-      })
-    );
+      setAlbums(prevAlbums =>
+        prevAlbums.map(album => {
+          console.log(selectedAlbumIds, album.collectionId);
+          if (selectedAlbumIds.has(String(album.collectionId))) {
 
-    // 4️⃣ Clear selections & modes
-    setSelectedAlbumIds(new Set());
-    setIsDeleteMode(false);
+            console.log('Updating rating for deleted album:')
+            const updatedRating =
+              updatedRatingsMap[album.collectionName] ||
+              updatedRatingsMap[String(album.collectionId)] ||
+              updatedRatingsMap[album.collectionName?.trim()] ||
+              null;
+            return { ...album, rating: updatedRating };
+          }
+          return album;
+        })
+      );
 
-    console.log('Deleted successfully:', Array.from(selectedAlbumIds));
+      // 4️⃣ Clear selections & modes
+      setSelectedAlbumIds(new Set());
+      setIsDeleteMode(false);
 
-  } catch (err) {
-    console.error('Delete failed:', err);
-  } finally {
-    setShowConfirm(false);
-  }
-};
+      console.log('Deleted successfully:', Array.from(selectedAlbumIds));
+
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setShowConfirm(false);
+    }
+  };
 
 
 
@@ -221,8 +227,14 @@ export default function App() {
       compare = a.artistName.localeCompare(b.artistName);
     } else if (sortBy === 'album') {
       compare = a.collectionName.localeCompare(b.collectionName);
-    } else if (sortBy == 'datelogged') {
+    } else if (sortBy == 'logdatetime') {
       compare = new Date(a.logdatetime) - new Date(b.logdatetime);
+    } else if (sortBy == 'releaseDate') {
+      compare = new Date(a.releaseDate) - new Date(b.releaseDate);
+    } else if (sortBy == 'trackCount') {
+      compare = (a.trackCount ?? 0) - (b.trackCount ?? 0);
+    } else if (sortBy == 'genre') {
+      compare = (a.genre ?? '').localeCompare(b.genre ?? '');
     }
     return sortOrder === 'asc' ? compare : -compare;
   });
@@ -303,7 +315,10 @@ export default function App() {
                     <option value="rating">Rating</option>
                     <option value="artist">Artist</option>
                     <option value="album">Album</option>
-                    <option value="datelogged">Date Logged</option>
+                    <option value="logdatetime">Date Logged</option>
+                    <option value="releaseDate">Release Date</option>
+                    <option value="trackCount">Track Count</option>
+                    <option value="genre">Genre</option>
                   </select>
 
                   <button
@@ -438,16 +453,16 @@ export default function App() {
       )}
 
       {showConfirm && (
-  <ConfirmPopup
-    message={
-      selectedAlbumIds.size === 1
-        ? 'Are you sure you want to delete this album?'
-        : `Are you sure you want to delete these ${selectedAlbumIds.size} albums?`
-    }
-    onConfirm={confirmDelete}
-    onCancel={() => setShowConfirm(false)}
-  />
-)}
+        <ConfirmPopup
+          message={
+            selectedAlbumIds.size === 1
+              ? 'Are you sure you want to delete this album?'
+              : `Are you sure you want to delete these ${selectedAlbumIds.size} albums?`
+          }
+          onConfirm={confirmDelete}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
 
 
       {/* Survey Modal */}

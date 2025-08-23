@@ -18,9 +18,26 @@ db.serialize(() => {
       artist_name TEXT NOT NULL,
       artwork_url TEXT,
       date_logged TEXT DEFAULT (datetime('now','localtime')),
-      rating REAL
+      rating REAL,
+      release_date TEXT,
+      track_count INTEGER,
+      primary_genre_name TEXT
     )
   `);
+
+  // Add columns to existing table if they don't exist
+  const addColumnIfNotExists = (columnName, columnType) => {
+    db.run(`ALTER TABLE survey_responses ADD COLUMN ${columnName} ${columnType}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Error adding column ${columnName}:`, err.message);
+      }
+    });
+  };
+
+  // Add new columns for existing databases
+  addColumnIfNotExists('release_date', 'TEXT');
+  addColumnIfNotExists('track_count', 'INTEGER');
+  addColumnIfNotExists('primary_genre_name', 'TEXT');
 });
 
 export default db;

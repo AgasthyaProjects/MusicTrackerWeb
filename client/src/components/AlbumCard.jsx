@@ -69,6 +69,17 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Helper function to extract year from release date
+  const getReleaseYear = (releaseDate) => {
+    if (!releaseDate) return null;
+    try {
+      return new Date(releaseDate).getFullYear();
+    } catch {
+      return null;
+    }
+  };
+
+
   // Show loading overlay
   if (loading) {
     return (
@@ -359,7 +370,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
         </h3>
 
         <p style={{
-          marginBottom: 'auto',
+          marginBottom: '0.75rem',
           fontSize: '0.9rem',
           color: '#94a3b8',
           lineHeight: '1.4',
@@ -370,6 +381,50 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
         }}>
           {album.artistName}
         </p>
+
+        {/* Album Details Section */}
+        <div style={{
+          marginBottom: 'auto',
+          paddingBottom: '0.75rem'
+        }}>
+          {/* Genre and Year Row */}
+          {(album.primaryGenreName || getReleaseYear(album.releaseDate)) && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.5rem',
+              flexWrap: 'wrap'
+            }}>
+              {album.primaryGenreName && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#60a5fa',
+                  backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  border: '1px solid rgba(96, 165, 250, 0.2)'
+                }}>
+                  {album.primaryGenreName}
+                </span>
+              )}
+              {getReleaseYear(album.releaseDate) && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#a78bfa',
+                  backgroundColor: 'rgba(167, 139, 250, 0.1)',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  border: '1px solid rgba(167, 139, 250, 0.2)'
+                }}>
+                  {getReleaseYear(album.releaseDate)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fixed position elements at bottom */}
@@ -381,7 +436,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             rel="noopener noreferrer"
             onClick={handleAppleMusicClick}
             style={{
-              display: 'inline-block', // instead of inline-flex
+              display: 'inline-block',
               marginBottom: '0.75rem',
               fontSize: '0.85rem',
               color: '#60a5fa',
@@ -390,7 +445,6 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
               fontWeight: '500',
               padding: '0.25rem 0'
             }}
-
             onMouseEnter={(e) => {
               e.target.style.color = '#93c5fd';
               e.target.style.transform = 'translateX(4px)';

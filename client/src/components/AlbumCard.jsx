@@ -512,47 +512,49 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
         </div>
 
 
-        {album.rating && album.favoriteSong && (
-          <div style={{
-            marginTop: '0.75rem',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            padding: '0.75rem',
-            display: 'block',
-            background: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.2)',
-            borderRadius: '10px',
-            position: 'relative',
-            width: 'fit-content', // Explicitly set width to content size
-            minWidth: 'auto', // Override any min-width constraints
-            maxWidth: 'none', // Override any max-width constraints
-            flex: 'none' // Override any flex properties from parent
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              width: 'fit-content' // Ensure inner container also fits content
-            }}>
-              <span style={{
-                fontSize: '0.8rem',
-                color: '#f59e0b',
-                fontWeight: '600',
-                whiteSpace: 'nowrap' // Prevent text wrapping
-              }}>
-                Favorite Song:
-              </span>
-              <span style={{
-                fontSize: '0.8rem',
-                color: '#f1f5f9',
-                fontWeight: '500',
-                whiteSpace: 'nowrap' // Prevent text wrapping that could affect sizing
-              }}>
-                {album.favoriteSong}
-              </span>
-            </div>
-          </div>
-        )}
+       {album.rating && album.favoriteSong && (
+  <div style={{
+    marginTop: '0.75rem',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    padding: '0.75rem',
+    display: 'block',
+    background: 'rgba(245, 158, 11, 0.1)',
+    border: '1px solid rgba(245, 158, 11, 0.2)',
+    borderRadius: '10px',
+    position: 'relative',
+    width: 'fit-content',
+    minWidth: 'auto',
+    maxWidth: '300px', // Set a reasonable max width to trigger wrapping
+    flex: 'none'
+  }}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'auto 1fr',
+      alignItems: 'center',
+      gap: '0.5rem',
+      width: 'fit-content'
+    }}>
+      <span style={{
+        fontSize: '0.8rem',
+        color: '#f59e0b',
+        fontWeight: '600',
+        whiteSpace: 'nowrap'
+      }}>
+        Favorite Song:
+      </span>
+      <span style={{
+        fontSize: '0.8rem',
+        color: '#f1f5f9',
+        fontWeight: '500',
+        wordBreak: 'break-word', // Allow long words to break
+        lineHeight: '1.2' // Adjust line height for better readability
+      }}>
+        {album.favoriteSong}
+      </span>
+    </div>
+  </div>
+)}
       </div>
 
 

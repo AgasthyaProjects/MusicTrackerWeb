@@ -55,7 +55,10 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
 
     fetchAlbumTracks();
   }, [album.collectionId]);
-
+  if (album.primaryGenreName == 'Hip-Hop' || album.primaryGenreName == 'Rap') {
+    album.primaryGenreName = 'Hip-Hop/Rap';
+  }
+  console.log('Rendering SurveyForm for album:', album.primaryGenreName);
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {

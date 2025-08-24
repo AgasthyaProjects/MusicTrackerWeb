@@ -32,12 +32,10 @@ export default function App() {
   }, []);
 
   const fetchRatings = async () => {
-    try {
+    try {å
       const res = await fetch('/api/survey/rated');
       const data = await res.json();
-      console.log('Ratings fetch response:', data);
       const albums = data.albums || [];
-      console.log('Fetched logged albums:', albums);
       setLoggedAlbums(albums);
 
       // Build ratingsMap using both album names AND IDs as keys for better matching
@@ -79,7 +77,6 @@ export default function App() {
       };
     });
     setAlbums(enriched);
-    console.log('Enriched search results:', albums)
     setSelectedAlbum(null);
     setShowSurvey(false);
   };
@@ -95,12 +92,6 @@ export default function App() {
         const data = await res.json();
         rating = data.rating ?? null;
         logdatetime = data.logdatetime ?? null;
-        console.log('Fresh album data:', {
-          albumName: album.collectionName,
-          rating,
-          logdatetime,
-          fromDatabase: true
-        });
       } else if (res.status === 404) {
         // Album not rated yet
         rating = null;
@@ -129,7 +120,6 @@ export default function App() {
               updatedRatingsMap[String(album.collectionId)] ||
               updatedRatingsMap[album.collectionName?.trim()] ||
               null;
-            console.log('Updated album rating:', updatedRating, 'for', album.collectionName);
 
             return { ...album, rating: updatedRating };
           }
@@ -171,9 +161,7 @@ export default function App() {
 
       setAlbums(prevAlbums =>
         prevAlbums.map(album => {
-          console.log(selectedAlbumIds, album.collectionId);
           if (selectedAlbumIds.has(String(album.collectionId))) {
-            console.log('Updating rating for deleted album:')
             const updatedRating =
               updatedRatingsMap[album.collectionName] ||
               updatedRatingsMap[String(album.collectionId)] ||
@@ -189,7 +177,6 @@ export default function App() {
       setSelectedAlbumIds(new Set());
       setIsDeleteMode(false);
 
-      console.log('Deleted successfully:', Array.from(selectedAlbumIds));
 
     } catch (err) {
       console.error('Delete failed:', err);

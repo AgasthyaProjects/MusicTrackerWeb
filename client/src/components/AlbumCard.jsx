@@ -610,7 +610,6 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log('Rate button clicked!'); // Add this for debugging
               if (onOpenSurvey) {
                 onOpenSurvey(album);
               }

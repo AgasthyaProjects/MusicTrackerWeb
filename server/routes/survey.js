@@ -63,12 +63,6 @@ router.get('/individual/:albumId', async (req, res) => {
           genre: row.primary_genre_name,
           favoriteSong: row.favorite_song,
         });
-
-        console.log('Fetched individual album:', {
-          albumId,
-          rating: row.rating,
-          logdatetime: row.date_logged
-        });
       }
     );
   } catch (err) {
@@ -101,7 +95,6 @@ router.get('/rated', async (req, res) => {
             favoriteSong: row.favorite_song,
           })),
         });
-        console.log('Fetched rated albums:', rows);
       }
     );
   } catch (err) {
@@ -113,7 +106,6 @@ router.get('/rated', async (req, res) => {
 // Delete a rating by albumId
 router.delete('/:albumId', async (req, res) => {
   const { albumId } = req.params;
-  console.log('Delete request for albumId:', albumId);
   if (!albumId) {
     return res.status(400).json({ error: 'Missing albumId' });
   }

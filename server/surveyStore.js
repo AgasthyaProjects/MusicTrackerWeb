@@ -37,7 +37,6 @@ async function saveSurvey({
           console.error('Database save error:', err);
           reject(err);
         } else {
-          console.log('Survey saved, preserving original date_logged');
           resolve();
         }
       }

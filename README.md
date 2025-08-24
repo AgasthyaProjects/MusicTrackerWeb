@@ -1,15 +1,12 @@
-# MyReactExpressApp
+# MusicTrackerWeb
 
-## Quick Start (No Commands Required!)
+## Quick Start
 
-### For End Users:
+### For End Users (No Terminal Required):
 1. Download this repository
-2. Double-click `install.command` 
-3. Launch the created `MyReactExpressApp.app`
-
-*Note: If you get a security warning, right-click `install.command` and choose "Open"*
+2. Run: `./create-pkg-installer.sh`
+3. Install the generated `MusicTracker-Installer.pkg`
+4. Launch "MyReactExpressApp" from Applications
 
 ### For Developers:
 ```bash
-npm install
-./start.sh

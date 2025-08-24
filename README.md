@@ -10,3 +10,5 @@
 
 ### For Developers:
 ```bash
+npm install
+./start.sh

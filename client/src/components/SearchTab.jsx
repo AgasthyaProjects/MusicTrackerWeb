@@ -15,7 +15,7 @@ export default function SearchTab({ albums, onSearch, onOpenSurvey }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for albums..."
+          placeholder="Search for albums or artists..."
           onKeyUp={(e) => e.key === 'Enter' && handleSearch()}
         />
         <button className="search-button" onClick={handleSearch}>Search</button>

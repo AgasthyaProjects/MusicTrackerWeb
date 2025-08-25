@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { searchAlbums } from '../api/itunes';
-
 export const useAlbumData = () => {
   const [albums, setAlbums] = useState([]);
   const [loggedAlbums, setLoggedAlbums] = useState([]);
   const [ratingsMap, setRatingsMap] = useState({});
   const [selectedAlbumIds, setSelectedAlbumIds] = useState(new Set());
   const [isDeleteMode, setIsDeleteMode] = useState(false);
+
 
   useEffect(() => {
     fetchRatings();
@@ -18,7 +18,6 @@ export const useAlbumData = () => {
       const data = await res.json();
       const albums = data.albums || [];
       setLoggedAlbums(albums);
-
       const map = {};
       albums.forEach(a => {
         map[a.collectionName] = a.rating;

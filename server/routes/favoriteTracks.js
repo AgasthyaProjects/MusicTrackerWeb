@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Add/remove favorite track
 router.post('/', async (req, res) => {
-  const { albumId, trackId, trackName, artistName, albumName, action } = req.body;
+  const { albumId, trackId, trackName, artistName, albumName, artworkUrl, action, duration, releaseDate, listeners, playcount, genre } = req.body;
   
   if (!albumId || !trackId || !action) {
     return res.status(400).json({ error: 'Missing required fields: albumId, trackId, action' });
@@ -19,7 +19,13 @@ router.post('/', async (req, res) => {
         trackId: String(trackId),
         trackName,
         artistName,
-        albumName
+        albumName,
+        artworkUrl,
+        durationsMs: duration,
+        releaseDate,
+        listeners,
+        playcount, 
+        genre
       });
     } else if (action === 'remove') {
       result = await favoriteTracksStore.removeFavoriteTrack({
@@ -62,3 +68,14 @@ router.get('/album/:albumId', async (req, res) => {
 });
 
 export default router;
+
+router.get('/alltracks', async (req, res) => {
+  try {
+    const favorites = await favoriteTracksStore.getAllFavoriteTracks();
+    console.log("here");
+    res.json({ favorites });
+  } catch (err) {
+    console.error('Failed to fetch all favorite tracks:', err);
+    res.status(500).json({ error: 'Failed to fetch favorite tracks' });
+  }
+});

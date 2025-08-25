@@ -5,6 +5,8 @@ import LoggedAlbumsTab from './components/LoggedAlbumsTab';
 import StatsTab from './components/StatsTab';
 import ConfirmPopup from './Popup/ConfirmPopup';
 import { useAlbumData } from './hooks/useAlbumData';
+import FavoritesTab from './components/FavoritesTab';
+
 import './styles/App.css';
 
 export default function App() {
@@ -12,7 +14,7 @@ export default function App() {
   const [showSurvey, setShowSurvey] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  
+
   const {
     albums,
     loggedAlbums,
@@ -117,11 +119,15 @@ export default function App() {
         <button className="tab-button" onClick={() => setActiveTab('stats')}>
           Stats
         </button>
+        <button className="tab-button" onClick={() => setActiveTab('favorites')}>
+          Favorites
+        </button>
+
       </div>
 
       {/* Tab Content */}
       {activeTab === 'search' && (
-        <SearchTab 
+        <SearchTab
           albums={albums}
           onSearch={handleSearch}
           onOpenSurvey={handleOpenSurvey}
@@ -146,6 +152,10 @@ export default function App() {
       {activeTab === 'stats' && (
         <StatsTab loggedAlbums={loggedAlbums} />
       )}
+      {activeTab === 'favorites' && (
+        <FavoritesTab onOpenSurvey={handleOpenSurvey} />
+      )}
+
 
       {/* Modals */}
       {showConfirm && (

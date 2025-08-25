@@ -4,14 +4,31 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}Starting React + Express Application${NC}"
 
-# Check if node_modules exists
+# Check if root node_modules exists
 if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}node_modules not found. Installing dependencies...${NC}"
+    echo -e "${YELLOW}Root node_modules not found. Installing dependencies...${NC}"
     npm install
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to install root dependencies${NC}"
+        exit 1
+    fi
+fi
+
+# Check if client node_modules exists
+if [ ! -d "client/node_modules" ]; then
+    echo -e "${YELLOW}Client node_modules not found. Installing client dependencies...${NC}"
+    cd client
+    npm install
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to install client dependencies${NC}"
+        exit 1
+    fi
+    cd ..
 fi
 
 # Function to handle cleanup on exit

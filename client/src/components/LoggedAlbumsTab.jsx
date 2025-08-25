@@ -7,6 +7,8 @@ export default function LoggedAlbumsTab({
     isDeleteMode,
     onOpenSurvey,
     onAlbumSelect,
+    onSelectAllAlbums,
+    onDeselectAllAlbums,
     onDeleteSelected,
     onCancelDelete,
     onToggleDeleteMode
@@ -17,6 +19,7 @@ export default function LoggedAlbumsTab({
     const [filterGenre, setFilterGenre] = useState('');
     const [filterYear, setFilterYear] = useState('');
     const [filterRating, setFilterRating] = useState('');
+
     const uniqueArtists = useMemo(() => {
         return [...new Set(loggedAlbums.map(album => album.artistName))].sort();
     }, [loggedAlbums]);
@@ -38,6 +41,7 @@ export default function LoggedAlbumsTab({
         const decades = [...new Set(uniqueYears.map(year => Math.floor(year / 10) * 10))];
         return decades.sort((a, b) => b - a);
     }, [uniqueYears]);
+
     const filteredAndSortedAlbums = useMemo(() => {
         let filtered = loggedAlbums.filter(album => {
             // Artist filter
@@ -165,7 +169,39 @@ export default function LoggedAlbumsTab({
         });
     }, [loggedAlbums, filterArtist, filterGenre, filterYear, filterRating, sortBy, sortOrder]);
 
+    const clearAllFilters = () => {
+        setFilterArtist('');
+        setFilterGenre('');
+        setFilterYear('');
+        setFilterRating('');
+    };
 
+    const handleSelectAll = () => {
+        if (selectedAlbumIds.size === filteredAndSortedAlbums.length) {
+            // Deselect all
+            if (onDeselectAllAlbums) {
+                onDeselectAllAlbums();
+            }
+        } else {
+            // Select all filtered albums
+            const allIds = filteredAndSortedAlbums.map(album => album.collectionId);
+            if (onSelectAllAlbums) {
+                onSelectAllAlbums(allIds);
+            }
+        }
+    };
+
+    const handleDeleteSelected = () => {
+        if (onDeleteSelected) {
+            onDeleteSelected();
+        }
+    };
+
+    const handleOpenSurvey = (album) => {
+        if (onOpenSurvey) {
+            onOpenSurvey(album);
+        }
+    };
 
     return (
         <section>
@@ -387,7 +423,7 @@ export default function LoggedAlbumsTab({
                         }}>
                             {!isDeleteMode ? (
                                 <button
-                                    onClick={() => setIsDeleteMode(true)}
+                                    onClick={onToggleDeleteMode}
                                     style={{
                                         padding: '0.5rem 1rem',
                                         fontSize: '0.9rem',
@@ -464,7 +500,7 @@ export default function LoggedAlbumsTab({
                                     </button>
 
                                     <button
-                                        onClick={handleCancelDelete}
+                                        onClick={onCancelDelete}
                                         style={{
                                             padding: '0.25rem 0.75rem',
                                             fontSize: '0.8rem',
@@ -513,7 +549,7 @@ export default function LoggedAlbumsTab({
                                 onOpenSurvey={() => handleOpenSurvey(album)}
                                 isDeleteMode={isDeleteMode}
                                 isSelected={selectedAlbumIds.has(album.collectionId)}
-                                onSelect={() => handleAlbumSelect(album.collectionId)}
+                                onSelect={() => onAlbumSelect(album.collectionId)}
                             />
                         ))}
                     </div>

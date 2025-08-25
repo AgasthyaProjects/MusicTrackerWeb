@@ -19,13 +19,16 @@ export default function App() {
     selectedAlbumIds,
     isDeleteMode,
     setAlbums,
+    setIsDeleteMode,
     fetchRatings,
     handleSearch: performSearch,
     confirmDelete,
     handleCancelDelete,
-    handleAlbumSelect
+    handleAlbumSelect,
+    handleSelectAllAlbums,
+    handleDeselectAllAlbums,
+    handleDeleteSelected
   } = useAlbumData();
-
 
   const handleSearch = async (query) => {
     const results = await performSearch(query);
@@ -76,6 +79,31 @@ export default function App() {
     setSelectedAlbum(null);
   };
 
+  const handleToggleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode);
+  };
+
+  const handleDeleteClick = () => {
+    const hasSelected = handleDeleteSelected();
+    if (hasSelected) {
+      setShowConfirm(true);
+    }
+  };
+
+  const handleActualDelete = async () => {
+    try {
+      await confirmDelete();
+      setShowConfirm(false);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      // Handle error - maybe show an error message
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirm(false);
+  };
+
   return (
     <div className="app-container">
       {/* Tab Navigation */}
@@ -107,8 +135,11 @@ export default function App() {
           isDeleteMode={isDeleteMode}
           onOpenSurvey={handleOpenSurvey}
           onAlbumSelect={handleAlbumSelect}
+          onSelectAllAlbums={handleSelectAllAlbums}
+          onDeselectAllAlbums={handleDeselectAllAlbums}
+          onDeleteSelected={handleDeleteClick}
           onCancelDelete={handleCancelDelete}
-          onToggleDeleteMode={() => setIsDeleteMode(!isDeleteMode)}
+          onToggleDeleteMode={handleToggleDeleteMode}
         />
       )}
 
@@ -124,8 +155,8 @@ export default function App() {
               ? 'Are you sure you want to delete this album?'
               : `Are you sure you want to delete these ${selectedAlbumIds.size} albums?`
           }
-          onConfirm={onActualDelete}
-          onCancel={() => setShowConfirm(false)}
+          onConfirm={handleActualDelete}
+          onCancel={handleCancelConfirm}
         />
       )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { searchAlbums } from '../api/itunes';
 
 export const useAlbumData = () => {
@@ -61,6 +61,14 @@ export const useAlbumData = () => {
     });
   };
 
+  const handleSelectAllAlbums = (albumIds) => {
+    setSelectedAlbumIds(new Set(albumIds));
+  };
+
+  const handleDeselectAllAlbums = () => {
+    setSelectedAlbumIds(new Set());
+  };
+
   const handleDeleteSelected = () => {
     return selectedAlbumIds.size > 0;
   };
@@ -101,6 +109,8 @@ export const useAlbumData = () => {
     handleDeleteSelected,
     confirmDelete,
     handleCancelDelete,
-    handleAlbumSelect
+    handleAlbumSelect,
+    handleSelectAllAlbums,
+    handleDeselectAllAlbums
   };
 };

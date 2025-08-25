@@ -6,7 +6,242 @@ body {
   padding: 0;
   min-height: 100vh;
 }
+* {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      color: #e2e8f0;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Loading animation */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(96, 165, 250, 0.3);
+      border-top: 3px solid #60a5fa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    .loading-text {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Header styling */
+    .app-header {
+      text-align: center;
+      padding: 2rem 0 1rem;
+      position: relative;
+    }
+
+    .app-title {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 30px rgba(96, 165, 250, 0.3);
+    }
+
+    .app-subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-bottom: 2rem;
+    }
+
+    /* Floating particles background effect */
+    .particle {
+      position: absolute;
+      background: rgba(96, 165, 250, 0.1);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .particle:nth-child(1) {
+      width: 4px;
+      height: 4px;
+      top: 20%;
+      left: 20%;
+      animation-delay: 0s;
+    }
+
+    .particle:nth-child(2) {
+      width: 6px;
+      height: 6px;
+      top: 60%;
+      left: 80%;
+      animation-delay: 2s;
+    }
+
+    .particle:nth-child(3) {
+      width: 3px;
+      height: 3px;
+      top: 80%;
+      left: 10%;
+      animation-delay: 4s;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.3;
+      }
+
+      50% {
+        transform: translateY(-20px) rotate(180deg);
+        opacity: 0.8;
+      }
+    }
+
+    /* Enhanced scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    }
+
+    /* Selection styling */
+    ::selection {
+      background: rgba(96, 165, 250, 0.3);
+      color: #ffffff;
+    }
+
+    ::-moz-selection {
+      background: rgba(96, 165, 250, 0.3);
+      color: #ffffff;
+    }
+
+    /* Focus indicators for accessibility */
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid #60a5fa;
+      outline-offset: 2px;
+    }
+
+    /* Hide loading screen after page load */
+    .loaded .loading-screen {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Footer */
+    .app-footer {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      margin-top: 4rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .footer-text {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-link {
+      color: #60a5fa;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-link:hover {
+      color: #93c5fd;
+    }
+
+    .tab-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .tab-button {
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: rgba(30, 41, 59, 0.8);
+      color: #e2e8f0;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    .tab-button:hover {
+      background: rgba(59, 130, 246, 0.9);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+      transform: translateY(-2px);
+    }
 .app-container {
   padding: 1rem 2.5rem;
   min-height: 100vh;
@@ -104,10 +339,13 @@ input[type="search"]::placeholder,
 .btn:active {
   transform: translateY(0);
 }
+
 .album-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4 columns per row */
-  grid-auto-flow: row; /* Fill horizontally first, then move to next row */
+  grid-template-columns: repeat(4, 1fr);
+  /* 4 columns per row */
+  grid-auto-flow: row;
+  /* Fill horizontally first, then move to next row */
   gap: 1.5rem;
   padding: 1rem 0;
 }
@@ -115,21 +353,25 @@ input[type="search"]::placeholder,
 /* Optional: Make it responsive */
 @media (max-width: 1200px) {
   .album-grid {
-    grid-template-columns: repeat(3, 1fr); /* 3 columns on medium screens */
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 columns on medium screens */
   }
 }
 
 @media (max-width: 768px) {
   .album-grid {
-    grid-template-columns: repeat(2, 1fr); /* 2 columns on small screens */
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 columns on small screens */
   }
 }
 
 @media (max-width: 480px) {
   .album-grid {
-    grid-template-columns: 1fr; /* 1 column on mobile */
+    grid-template-columns: 1fr;
+    /* 1 column on mobile */
   }
 }
+
 .album-card {
   background: rgba(30, 41, 59, 0.6);
   backdrop-filter: blur(20px);
@@ -138,16 +380,19 @@ input[type="search"]::placeholder,
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(148, 163, 184, 0.1);
-  box-shadow: 
+  box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.1),
     0 1px 3px rgba(0, 0, 0, 0.08);
   position: relative;
   overflow: hidden;
-  display: inline-block; /* Important: makes cards work with CSS columns */
+  display: inline-block;
+  /* Important: makes cards work with CSS columns */
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 2rem; /* Space between cards vertically */
-  break-inside: avoid; /* Prevents cards from breaking across columns */
+  margin-bottom: 2rem;
+  /* Space between cards vertically */
+  break-inside: avoid;
+  /* Prevents cards from breaking across columns */
 }
 
 .album-card::before {
@@ -170,7 +415,7 @@ input[type="search"]::placeholder,
 .album-card:hover {
   transform: translateY(-6px) scale(1.01);
   border-color: rgba(96, 165, 250, 0.3);
-  box-shadow: 
+  box-shadow:
     0 16px 32px rgba(0, 0, 0, 0.15),
     0 6px 12px rgba(96, 165, 250, 0.1);
 }
@@ -188,7 +433,7 @@ input[type="search"]::placeholder,
   object-fit: cover;
   border-radius: 16px;
   margin-bottom: 1rem;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
@@ -196,7 +441,7 @@ input[type="search"]::placeholder,
 
 .album-card:hover img {
   transform: scale(1.05);
-  box-shadow: 
+  box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.4),
     0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -297,7 +542,8 @@ input[type="search"]::placeholder,
 
 /* Survey Form Close Button */
 .survey-close-btn {
-  all: unset; /* reset inherited button styles */
+  all: unset;
+  /* reset inherited button styles */
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -518,6 +764,7 @@ input[type="search"]::placeholder,
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -529,31 +776,31 @@ input[type="search"]::placeholder,
   .app-container {
     padding: 1.5rem;
   }
-  
+
   h1 {
     font-size: 2rem;
   }
-  
+
   .album-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
   }
-  
+
   .album-card {
     padding: 1rem;
   }
-  
+
   .search-bar,
   .search-container,
   .search-form {
     flex-direction: column;
     max-width: none;
   }
-  
+
   input[type="text"] {
     padding: 0.875rem 1rem;
   }
-  
+
   button {
     padding: 0.875rem 1.5rem;
   }
@@ -614,7 +861,8 @@ input[type="search"]::placeholder,
   width: 32px;
   height: 32px;
   transition: transform 0.2s ease;
-  border-radius: 6px; /* Slight rounding for better look */
+  border-radius: 6px;
+  /* Slight rounding for better look */
   overflow: hidden;
 }
 
@@ -665,9 +913,101 @@ input[type="search"]::placeholder,
   .music-platforms {
     gap: 0.75rem;
   }
-  
+
   .music-platform-btn {
     width: 28px;
     height: 28px;
   }
+}
+
+
+
+.tab-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.tab-button:hover {
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+  transform: translateY(-2px);
+}
+/* Subtab variant — smaller pill, glassy background, subtle accent when active */
+.subtab-button {
+  padding: 0.5rem 1rem;            /* slightly smaller */
+  border-radius: 999px;            /* full pill */
+  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(20,28,40,0.6);  /* darker, slightly translucent */
+  color: #dbeafe;                  /* cool-light text that fits theme */
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45), inset 0 -2px 0 rgba(255,255,255,0.02);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+}
+
+/* Hover: subtle lift + brighten */
+.subtab-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(26,36,50,0.72);
+  box-shadow: 0 10px 26px rgba(2,6,23,0.5), inset 0 -1px 0 rgba(255,255,255,0.03);
+}
+
+/* Active/selected state (use .active or aria-pressed="true") */
+.subtab-button.active,
+.subtab-button[aria-pressed="true"] {
+  background: linear-gradient(180deg, rgba(59,130,246,0.14), rgba(59,130,246,0.06));
+  border-color: rgba(59,130,246,0.36);
+  color: #ffffff;
+  box-shadow: 0 14px 36px rgba(59,130,246,0.10), inset 0 1px 0 rgba(255,255,255,0.02);
+  transform: translateY(-3px) scale(1.01);
+}
+
+/* Focus ring for accessibility */
+.subtab-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.12), 0 8px 24px rgba(2,6,23,0.45);
+}
+
+/* Pressed (mouse down) micro-interaction */
+.subtab-button:active {
+  transform: translateY(0) scale(0.997);
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45), inset 0 -1px 0 rgba(255,255,255,0.01);
+}
+
+/* Optional: smaller / compact variant */
+.subtab-button.sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.88rem;
+  min-height: 32px;
 }

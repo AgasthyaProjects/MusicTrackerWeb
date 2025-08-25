@@ -32,7 +32,6 @@ export default function AlbumCard({
     try {
       const res = await fetch(`https://itunes.apple.com/lookup?id=${collectionId}&entity=song`);
       const data = await res.json();
-      console.log('Fetched album details from iTunes:', data);
       if (data?.resultCount > 0) {
         const _tracks = data.results.slice(1);
         return _tracks;
@@ -94,7 +93,6 @@ export default function AlbumCard({
         setFavoritesLoaded(true);
       } else {
         // server didn't send favorites array; keep current cache/state
-        console.log('Server returned no favorites array; keeping cached favorites.');
       }
     } catch (e) {
       console.error('Error loading favorites from server', e);
@@ -198,7 +196,6 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
         console.error('Failed to parse /api/favoriteTracks JSON', parseErr);
       }
 
-      console.log('POST /api/favoriteTracks ->', { status: resp.status, ok: resp.ok, body: result, action });
 
       return { resp, result };
     };
@@ -239,7 +236,6 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
         const isNowFav = favoriteTrackIds.has(trackId);
         if (!isNowFav && !didRetry) {
           didRetry = true;
-          console.log('Attempting one explicit re-add (retry) for trackId', trackId);
           const { resp: resp2, result: result2 } = await doPost('add');
 
           if (!resp2.ok) {

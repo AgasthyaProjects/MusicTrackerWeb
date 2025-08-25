@@ -8,12 +8,14 @@ import { useAlbumData } from './hooks/useAlbumData';
 import FavoritesTab from './components/FavoritesTab';
 
 import './styles/App.css';
+import { searchAlbums, searchSongs } from './api/itunes';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('search');
   const [showSurvey, setShowSurvey] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [songs, setSongs] = useState([]);
 
   const {
     albums,
@@ -23,7 +25,6 @@ export default function App() {
     setAlbums,
     setIsDeleteMode,
     fetchRatings,
-    handleSearch: performSearch,
     confirmDelete,
     handleCancelDelete,
     handleAlbumSelect,
@@ -32,13 +33,40 @@ export default function App() {
     handleDeleteSelected
   } = useAlbumData();
 
-  const handleSearch = async (query) => {
-    const results = await performSearch(query);
+  const handleAlbumSearch = async (query) => {
+    const results = await searchAlbums(query);
     setAlbums(results);
     setSelectedAlbum(null);
     setShowSurvey(false);
   };
 
+ let currentSearchId = 0; // Track current search
+
+const handleSongSearch = async (query, onProgress) => {
+  try {
+    // Increment search ID to identify this search
+    currentSearchId++;
+    const thisSearchId = currentSearchId;
+    
+    // This returns initial results immediately
+    const initialResults = await searchSongs(query, (updatedSongs, enrichmentId) => {
+      // Only update if this is still the current search
+      if (thisSearchId === currentSearchId) {
+        onProgress?.(updatedSongs);
+      }
+    });
+    
+    // Only set initial results if this is still the current search
+    if (thisSearchId === currentSearchId) {
+      setSongs(initialResults);
+    }
+  } catch (err) {
+    console.error('Song search failed:', err);
+  }
+};
+  const handleSongsUpdate = (updatedSongs) => {
+    setSongs(updatedSongs);
+  };
   const handleOpenSurvey = async (album) => {
     let rating = album.rating;
     let logdatetime = album.logdatetime;
@@ -129,7 +157,10 @@ export default function App() {
       {activeTab === 'search' && (
         <SearchTab
           albums={albums}
-          onSearch={handleSearch}
+          songs={songs}
+          onSearchAlbum={handleAlbumSearch}
+          onSearchSong={handleSongSearch}
+          onSongsUpdate={handleSongsUpdate}
           onOpenSurvey={handleOpenSurvey}
         />
       )}

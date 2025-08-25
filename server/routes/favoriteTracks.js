@@ -72,7 +72,6 @@ export default router;
 router.get('/alltracks', async (req, res) => {
   try {
     const favorites = await favoriteTracksStore.getAllFavoriteTracks();
-    console.log("here");
     res.json({ favorites });
   } catch (err) {
     console.error('Failed to fetch all favorite tracks:', err);

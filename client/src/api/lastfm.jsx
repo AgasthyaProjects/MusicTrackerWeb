@@ -25,7 +25,6 @@ export async function getTrackStats(artist, track) {
   try {
     const res = await fetch(url);
     const data = await res.json();
-    console.log(data);
     if (data?.track) {
       return {
         listeners: parseInt(data.track.listeners ?? "0", 10),

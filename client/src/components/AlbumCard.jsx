@@ -5,6 +5,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [favoriteTrackIds, setFavoriteTrackIds] = useState(new Set());
 
   const fetchAlbumDetails = async (collectionId) => {
     try {
@@ -37,13 +38,97 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
     loadAlbumDetails();
   }, [album.collectionId]);
 
+  // Load favorite tracks when album changes
+  useEffect(() => {
+    if (album?.collectionId) {
+      loadFavoriteTracksForAlbum(album.collectionId);
+    }
+  }, [album?.collectionId]);
+
   const handleAppleMusicClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     window.open(album.collectionViewUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Update the handleCardClick function in your AlbumCard.jsx:
+  const loadFavoriteTracksForAlbum = async (albumId) => {
+    if (!albumId) return;
+
+    try {
+      const response = await fetch(`/api/favoriteTracks/album/${albumId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch favorites');
+      }
+
+      const data = await response.json();
+      const favoriteSet = new Set(data.favorites.map(fav => fav.trackId));
+      setFavoriteTrackIds(favoriteSet);
+
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      setFavoriteTrackIds(new Set()); // Clear favorites on error
+    }
+  };
+
+  const handleTrackFavorite = async (trackId, e, track = null) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isCurrentlyFavorited = favoriteTrackIds.has(trackId);
+    const action = isCurrentlyFavorited ? 'remove' : 'add';
+
+    // Optimistically update UI
+    setFavoriteTrackIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(trackId)) {
+        newSet.delete(trackId);
+      } else {
+        newSet.add(trackId);
+      }
+      return newSet;
+    });
+
+    try {
+      const response = await fetch('/api/favoriteTracks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          albumId: album.collectionId, // Fixed: use album.collectionId instead of currentAlbum
+          trackId: String(trackId),
+          trackName: track?.trackName,
+          artistName: album.artistName, // Added missing fields
+          albumName: album.collectionName,
+          action
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+
+      const result = await response.json();
+      console.log('Favorite updated:', result);
+
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+
+      // Revert optimistic update on error
+      setFavoriteTrackIds(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyFavorited) {
+          newSet.add(trackId); // Re-add if we were trying to remove
+        } else {
+          newSet.delete(trackId); // Remove if we were trying to add
+        }
+        return newSet;
+      });
+
+      // Show error message to user
+      // setError('Failed to update favorite status');
+    }
+  };
 
   const handleCardClick = async (e) => {
     if (isDeleteMode) {
@@ -60,7 +145,8 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
       e.target.closest('button') ||
       e.target.closest('a') ||
       e.target.closest('.music-platforms') ||
-      e.target.classList.contains('music-platform-btn')
+      e.target.classList.contains('music-platform-btn') ||
+      e.target.closest('.track-favorite-star')
     ) {
       e.preventDefault();
       e.stopPropagation();
@@ -120,6 +206,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
     const formatted = formatDuration(totaldur);
     return formatted;
   };
+
   const handleSpotifyClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -248,6 +335,7 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             }}>
               {album.artistName}
             </p>
+
           </div>
 
           {/* Tracklist */}
@@ -263,9 +351,47 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
                   display: 'flex',
                   alignItems: 'center',
                   padding: '0.5rem 0',
-                  borderBottom: index < tracks.length - 1 ? '1px solid rgba(148, 163, 184, 0.1)' : 'none'
+                  borderBottom: index < tracks.length - 1 ? '1px solid rgba(148, 163, 184, 0.1)' : 'none',
+                  transition: 'all 0.2s ease',
+                  borderRadius: '6px',
+                  marginBottom: '2px',
+                  background: favoriteTrackIds.has(track.trackId) ? 'rgba(239, 68, 68, 0.05)' : 'transparent'
                 }}
               >
+                {/* Favorite Star */}
+                <button
+                  className="track-favorite-star"
+                  onClick={(e) => handleTrackFavorite(track.trackId, e, track)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    marginRight: '0.5rem',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    fontSize: '16px',
+                    width: '24px',
+                    height: '24px',
+                    color: favoriteTrackIds.has(track.trackId) ? '#ef4444' : '#64748b',
+                    transform: favoriteTrackIds.has(track.trackId) ? 'scale(1.1)' : 'scale(1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
+                    e.target.style.transform = 'scale(1.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.transform = favoriteTrackIds.has(track.trackId) ? 'scale(1.1)' : 'scale(1)';
+                  }}
+                  title={favoriteTrackIds.has(track.trackId) ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {favoriteTrackIds.has(track.trackId) ? '★' : '☆'}
+                </button>
+
                 <span style={{
                   fontSize: '0.8rem',
                   color: '#64748b',
@@ -275,19 +401,22 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
                 }}>
                   {track.trackNumber || index + 1}
                 </span>
+
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
                     fontSize: '0.85rem',
                     color: '#f1f5f9',
                     margin: 0,
-                    fontWeight: '500',
+                    fontWeight: favoriteTrackIds.has(track.trackId) ? '600' : '500',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease'
                   }}>
                     {track.trackName}
                   </p>
                 </div>
+
                 {track.trackTimeMillis && (
                   <span style={{
                     fontSize: '0.8rem',
@@ -512,49 +641,49 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
         </div>
 
 
-       {album.rating && album.favoriteSong && (
-  <div style={{
-    marginTop: '0.75rem',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    padding: '0.75rem',
-    display: 'block',
-    background: 'rgba(245, 158, 11, 0.1)',
-    border: '1px solid rgba(245, 158, 11, 0.2)',
-    borderRadius: '10px',
-    position: 'relative',
-    width: 'fit-content',
-    minWidth: 'auto',
-    maxWidth: '300px', // Set a reasonable max width to trigger wrapping
-    flex: 'none'
-  }}>
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'auto 1fr',
-      alignItems: 'center',
-      gap: '0.5rem',
-      width: 'fit-content'
-    }}>
-      <span style={{
-        fontSize: '0.8rem',
-        color: '#f59e0b',
-        fontWeight: '600',
-        whiteSpace: 'nowrap'
-      }}>
-        Favorite Song:
-      </span>
-      <span style={{
-        fontSize: '0.8rem',
-        color: '#f1f5f9',
-        fontWeight: '500',
-        wordBreak: 'break-word', // Allow long words to break
-        lineHeight: '1.2' // Adjust line height for better readability
-      }}>
-        {album.favoriteSong}
-      </span>
-    </div>
-  </div>
-)}
+        {album.rating && album.favoriteSong && (
+          <div style={{
+            marginTop: '0.75rem',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            padding: '0.75rem',
+            display: 'block',
+            background: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: '10px',
+            position: 'relative',
+            width: 'fit-content',
+            minWidth: 'auto',
+            maxWidth: '300px', // Set a reasonable max width to trigger wrapping
+            flex: 'none'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: 'fit-content'
+            }}>
+              <span style={{
+                fontSize: '0.8rem',
+                color: '#f59e0b',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+                Favorite Song:
+              </span>
+              <span style={{
+                fontSize: '0.8rem',
+                color: '#f1f5f9',
+                fontWeight: '500',
+                wordBreak: 'break-word', // Allow long words to break
+                lineHeight: '1.2' // Adjust line height for better readability
+              }}>
+                {album.favoriteSong}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
 
@@ -575,10 +704,6 @@ export default function AlbumCard({ album, onOpenSurvey, onRatingClick, isDelete
             </button>
           </div>
         )}
-
-
-
-
 
         {isDeleteMode ? (
           <div

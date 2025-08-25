@@ -39,6 +39,20 @@ db.serialize(() => {
   addColumnIfNotExists('release_date', 'TEXT');
   addColumnIfNotExists('track_count', 'INTEGER');
   addColumnIfNotExists('primary_genre_name', 'TEXT');
+
+
+   db.run(`
+    CREATE TABLE IF NOT EXISTS favorite_tracks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      album_id TEXT NOT NULL,
+      track_id TEXT NOT NULL,
+      track_name TEXT,
+      artist_name TEXT,
+      album_name TEXT,
+      date_favorited TEXT DEFAULT (datetime('now','localtime')),
+      UNIQUE(album_id, track_id)
+    )
+  `);
 });
 
 export default db;

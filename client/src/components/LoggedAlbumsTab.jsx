@@ -224,7 +224,8 @@ export default function LoggedAlbumsTab({
                             flexDirection: 'column',
                             gap: '1rem',
                             flex: '1',
-                            minWidth: '300px'
+                            minWidth: isDeleteMode ? '250px' : '300px',
+                            maxWidth: isDeleteMode ? 'calc(100% - 320px)' : 'calc(100% - 200px)'
                         }}>
                             {/* Sorting controls */}
                             <div className="sort-controls" style={{
@@ -295,7 +296,8 @@ export default function LoggedAlbumsTab({
                                             fontSize: '0.9rem',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             color: '#e2e8f0',
-                                            maxWidth: '80%',
+                                            minWidth: '120px',
+                                            maxWidth: isDeleteMode ? '150px' : '200px',
                                             backdropFilter: 'blur(5px)'
                                         }}
                                     >
@@ -319,6 +321,8 @@ export default function LoggedAlbumsTab({
                                             fontSize: '0.9rem',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             color: '#e2e8f0',
+                                            minWidth: '120px',
+                                            maxWidth: isDeleteMode ? '150px' : '200px',
                                             backdropFilter: 'blur(5px)'
                                         }}
                                     >
@@ -342,6 +346,8 @@ export default function LoggedAlbumsTab({
                                             fontSize: '0.9rem',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             color: '#e2e8f0',
+                                            minWidth: '120px',
+                                            maxWidth: isDeleteMode ? '150px' : '200px',
                                             backdropFilter: 'blur(5px)'
                                         }}
                                     >
@@ -371,6 +377,8 @@ export default function LoggedAlbumsTab({
                                             fontSize: '0.9rem',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             color: '#e2e8f0',
+                                            minWidth: '120px',
+                                            maxWidth: isDeleteMode ? '150px' : '200px',
                                             backdropFilter: 'blur(5px)'
                                         }}
                                     >
@@ -419,7 +427,9 @@ export default function LoggedAlbumsTab({
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.5rem'
+                            gap: '0.5rem',
+                            flexShrink: 0,
+                            minWidth: isDeleteMode ? '300px' : 'auto'
                         }}>
                             {!isDeleteMode ? (
                                 <button

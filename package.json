@@ -13,7 +13,9 @@
     "concurrently": "^8.2.0"
   },
   "dependencies": {
-      "vite": "^4.5.0",
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "vite": "^4.5.0",
   "@vitejs/plugin-react": "^4.0.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",

@@ -154,10 +154,10 @@ export default function SearchTab({
         )}
       </div>
 
-      {/* results grid */}
-      <div className={activeSubTab === 'albums' ? 'album-grid' : 'song-grid'} style={{ marginBottom: "1rem" }}>
-        {activeSubTab === 'albums' ? (
-          albums.length ? (
+      {/* results grid - different styling for albums vs songs */}
+      {activeSubTab === 'albums' ? (
+        <div className="album-grid" style={{ marginBottom: "1rem" }}>
+          {albums.length ? (
             albums.map((album) => (
               <AlbumCard
                 key={album.collectionId ?? `${album.artist}-${album.name}`}
@@ -167,53 +167,62 @@ export default function SearchTab({
             ))
           ) : (
             <p>No albums yet — try a search.</p>
-          )
-        ) : (
-        songs.length ? (
-          songs.map((track, index) => {
-            // Map the search result properties to match what SongCard expects
-            const normalizedTrack = {
-              ...track,
-              track_id: track.trackId || track.track_id,
-              track_name: track.trackName || track.track_name,
-              artist_name: track.artistName || track.artist_name,
-              album_name: track.collectionName || track.album_name,
-              album_id: track.collectionId || track.album_id, // Now available from iTunes API
-              artwork_url: track.artworkUrl100 || track.artwork_url,
-              durations_ms: track.trackTimeMillis || track.durations_ms,
-              release_date: track.releaseDate || track.release_date, // Now available from album lookup
-              listeners: track.listeners, // Keep existing if available
-              playcount: track.playcount, // Keep existing if available
-            };
+          )}
+        </div>
+      ) : (
+        /* Songs grid with 2-column layout like FavoritesTab */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 16,
+          marginBottom: "1rem"
+        }}>
+          {songs.length ? (
+            songs.map((track, index) => {
+              // Map the search result properties to match what SongCard expects
+              const normalizedTrack = {
+                ...track,
+                track_id: track.trackId || track.track_id,
+                track_name: track.trackName || track.track_name,
+                artist_name: track.artistName || track.artist_name,
+                album_name: track.collectionName || track.album_name,
+                album_id: track.collectionId || track.album_id, // Now available from iTunes API
+                artwork_url: track.artworkUrl100 || track.artwork_url,
+                durations_ms: track.trackTimeMillis || track.durations_ms,
+                release_date: track.releaseDate || track.release_date, // Now available from album lookup
+                listeners: track.listeners, // Keep existing if available
+                playcount: track.playcount, // Keep existing if available
+              };
 
-            const isPending = pendingIds.has(normalizedTrack.track_id);
-            const isFav = favoritedTracks.has(normalizedTrack.track_id);
-            const genre = getGenreFromTrack(normalizedTrack);
-            const fullReleaseDate = formatFullReleaseDate(normalizedTrack);
-            const trackduration = formatDuration(normalizedTrack.durations_ms);
+              const isPending = pendingIds.has(normalizedTrack.track_id);
+              const isFav = favoritedTracks.has(normalizedTrack.track_id);
+              const genre = getGenreFromTrack(normalizedTrack);
+              const fullReleaseDate = formatFullReleaseDate(normalizedTrack);
+              const trackduration = formatDuration(normalizedTrack.durations_ms);
 
-            // Generate a unique key with fallbacks
-            const uniqueKey = normalizedTrack.track_id
-              || `${normalizedTrack.artist_name || 'unknown'}-${normalizedTrack.track_name || 'unknown'}-${normalizedTrack.album_name || 'unknown'}-${index}`
-              || `song-${index}`;
+              // Generate a unique key with fallbacks
+              const uniqueKey = normalizedTrack.track_id
+                || `${normalizedTrack.artist_name || 'unknown'}-${normalizedTrack.track_name || 'unknown'}-${normalizedTrack.album_name || 'unknown'}-${index}`
+                || `song-${index}`;
 
-            return (
-              <SongCard
-                key={uniqueKey}
-                track={normalizedTrack}
-                isPending={isPending}
-                isFav={isFav}
-                onUnfavorite={handleFavoriteToggle}
-                genre={genre}
-                fullReleaseDate={fullReleaseDate}
-                trackduration={trackduration}
-              />
-            );
-          })
-        ) : (
-          <p>No songs yet — try a search.</p>
-        ))}
-      </div>
+              return (
+                <SongCard
+                  key={uniqueKey}
+                  track={normalizedTrack}
+                  isPending={isPending}
+                  isFav={isFav}
+                  onUnfavorite={handleFavoriteToggle}
+                  genre={genre}
+                  fullReleaseDate={fullReleaseDate}
+                  trackduration={trackduration}
+                />
+              );
+            })
+          ) : (
+            <p>No songs yet — try a search.</p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -8,6 +8,7 @@
     "dev": "concurrently \"npm run client\" \"npm run server\"",
     "build": "npm --prefix client run build"
   },
+  "dev": "concurrently --kill-others-on-fail \"npm run client\" \"npm run server\" --prefix \"{time} [{name}]\"",
   "devDependencies": {
     "concurrently": "^8.2.0"
   },

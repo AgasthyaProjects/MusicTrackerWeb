@@ -8,10 +8,12 @@ PROJECT_DIR=$(pwd)
 APP_DIR="$HOME/Desktop/$APP_NAME.app"
 
 echo "Creating Mac application: $APP_NAME.app"
+echo "Project dir: $PROJECT_DIR"
+echo "App dir: $APP_DIR"
 
 # Create the .app directory structure
 mkdir -p "$APP_DIR/Contents/MacOS"
-mkdir -p "$APP_DIR/Contents/Resources"
+mkdir -p "$APP_DIR/Contents/Resources/logs"
 
 # Create the Info.plist file
 cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
@@ -24,7 +26,7 @@ cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
     <key>CFBundleIdentifier</key>
     <string>com.mycompany.reactapp</string>
     <key>CFBundleName</key>
-    <string>MyReactApp</string>
+    <string>Music Tracker</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -39,62 +41,69 @@ cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
 </plist>
 EOF
 
+# Detect user's login shell (default to /bin/bash if unknown)
+USER_SHELL="${SHELL:-/bin/bash}"
+echo "Detected user shell: $USER_SHELL"
+
 # Create the main executable script
 cat > "$APP_DIR/Contents/MacOS/start_app" << EOF
 #!/bin/bash
+# This wrapper runs your project commands using the user's login shell so
+# nvm/volta/zshrc/bash_profile are loaded the same way as in Terminal.
 
-# Navigate to project directory
-cd "$PROJECT_DIR"
+# Paths (expanded at creation time)
+PROJECT_DIR="$PROJECT_DIR"
+APP_DIR="$APP_DIR"
+LOG_DIR="\$APP_DIR/Contents/Resources/logs"
 
-# Show starting notification
-osascript -e 'display notification "Launching Music Tracker..." with title "Music Tracker"' &
+# Where to open the browser (change if your dev server uses another port)
+APP_URL="http://localhost:5173"
 
-# Start the application immediately (skip dependency checks for speed)
-npm run dev >/dev/null 2>&1 &
-APP_PID=\$!
+# Use the user's shell as a login shell (-l) and run the command string (-c).
+# This ensures shell init files (nvm, PATH, etc.) are loaded.
+USER_SHELL="$USER_SHELL"
 
-# Open browser immediately while servers are starting
-open http://localhost:5174 &
-sleep 1
-open http://localhost:5173 &
+# Build a single shell command to run both servers using nohup and redirect logs.
+# We use nohup + & so the servers keep running even after this wrapper exits.
+CMD="
+cd \"\$PROJECT_DIR\" || exit 1
 
-# Quick check if app started successfully after 3 seconds
-(sleep 3 && osascript -e 'display notification "Music Tracker is ready!" with title "Music Tracker"') &
+# Start Express (adjust path if your server start command differs)
+echo '--- Starting Express server ---' >> \"\$LOG_DIR/server.log\"
+nohup \$SHELL -lc 'cd \"\$PROJECT_DIR\" && node server/index.js' >> \"\$LOG_DIR/server.log\" 2>&1 &
 
-# Monitor and auto-retry browser opening
-(
-  sleep 2
-  for i in {1..8}; do
-    if curl -s http://localhost:5174 >/dev/null 2>&1; then
-      open http://localhost:5174
-      break
-    elif curl -s http://localhost:5173 >/dev/null 2>&1; then
-      open http://localhost:5173
-      break
-    fi
-    sleep 0.5
-  done
-) &
+# Give server a sec to bind to port (optional)
+sleep 2
+
+# Start React dev server (npm run dev)
+echo '--- Starting React dev server ---' >> \"\$LOG_DIR/react.log\"
+nohup \$SHELL -lc 'cd \"\$PROJECT_DIR\" && npm run dev' >> \"\$LOG_DIR/react.log\" 2>&1 &
+
+# Wait briefly then open the browser
+sleep 4
+open \"\$APP_URL\"
+
+# exit wrapper (background processes were started with nohup &)
+exit 0
+"
+
+# Execute the cmd string through the user's login shell.
+# Use -l in case shell uses zsh and you need ~/.zprofile / ~/.zshrc to run.
+"\$USER_SHELL" -lc "\$CMD"
 EOF
 
 # Make the executable script actually executable
 chmod +x "$APP_DIR/Contents/MacOS/start_app"
 
-# Create icon - you can replace this section with your own icon
 echo "📱 To add a custom icon:"
-echo "1. Convert your image to .icns format using online converter or IconUtil"
-echo "2. Replace: $APP_DIR/Contents/Resources/app_icon.icns"
-echo "3. Or drag any image onto the app and macOS will use it as icon"
-
-# For now, we'll skip creating the .icns file since it needs to be binary
-# The app will use a default icon until you add one
+echo "1. Convert your image to .icns format (e.g., Icon Set -> iconutil or an online converter)"
+echo "2. Place it at: $APP_DIR/Contents/Resources/app_icon.icns"
+echo "3. (Optional) update Info.plist CFBundleIconFile if you named it something else"
 
 echo "✅ Mac application created at: $APP_DIR"
 echo ""
 echo "To use your new app:"
 echo "1. Double-click the $APP_NAME.app icon on your Desktop"
-echo "2. It will automatically run your start.sh script"
-echo "3. Your React app will open in your browser"
+echo "2. Check logs at: $APP_DIR/Contents/Resources/logs/react.log and server.log if something fails"
 echo ""
-echo "Note: You might need to allow the app in System Preferences > Security & Privacy"
-echo "if you get a security warning the first time you run it."
+echo "If macOS blocks the app, open System Preferences → Security & Privacy → General and Allow it."

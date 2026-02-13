@@ -406,6 +406,7 @@ input[type="search"]::placeholder,
   opacity: 0;
   transition: opacity 0.4s ease;
   border-radius: 20px;
+  pointer-events: none;
 }
 
 .album-card:hover::before {
@@ -491,7 +492,7 @@ input[type="search"]::placeholder,
 }
 
 /* Rating button styles */
-.album-card button[style*="width: 100%"] {
+.album-card .album-rate-button {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
@@ -503,21 +504,15 @@ input[type="search"]::placeholder,
   overflow: hidden;
 }
 
-.album-card button[style*="background-color: rgb(16, 185, 129)"] {
+.album-card .album-rate-button.rated {
   background: linear-gradient(135deg, #10b981, #059669) !important;
   color: #fff !important;
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }
 
-.album-card button[style*="background-color: rgb(16, 185, 129)"]:hover {
+.album-card .album-rate-button.rated:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-}
-
-.album-card button[style*="background-color: rgb(68, 68, 68)"] {
-  background: rgba(55, 65, 81, 0.8) !important;
-  color: #9ca3af !important;
-  cursor: not-allowed !important;
 }
 
 /* Survey Form Container */
@@ -827,6 +822,11 @@ input[type="search"]::placeholder,
 .sort-select:focus {
   outline: none;
   border-color: #3b82f6;
+}
+
+.sort-select option {
+  color: #0f172a;
+  background: #ffffff;
 }
 
 .sort-toggle {

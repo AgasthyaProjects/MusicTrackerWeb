@@ -4,6 +4,7 @@ import { getTrackStats } from '../api/lastfm';
 export default function AlbumCard({
   album,
   onOpenSurvey,
+  onArtistClick,
   onRatingClick,
   isDeleteMode,
   isSelected,
@@ -320,17 +321,8 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
 };
 
 
-  // --- Card click handling (open/close) ---
-  const handleCardClick = async (e) => {
-    if (isDeleteMode) {
-      e?.preventDefault();
-      e?.stopPropagation();
-      onSelect?.();
-      return;
-    }
-
-    // Avoid flipping when clicking buttons/links/stars
-    if (
+  const isInteractiveTarget = (e) => {
+    return (
       e?.target?.tagName === 'BUTTON' ||
       e?.target?.tagName === 'A' ||
       e?.target?.closest?.('button') ||
@@ -338,21 +330,35 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
       e?.target?.closest?.('.music-platforms') ||
       e?.target?.classList?.contains('music-platform-btn') ||
       e?.target?.closest?.('.track-favorite-star')
-    ) {
+    );
+  };
+
+  const handleBackCardClick = (e) => {
+    if (isDeleteMode) {
       e?.preventDefault();
       e?.stopPropagation();
+      onSelect?.();
+      return;
+    }
+
+    if (isInteractiveTarget(e)) {
       return;
     }
 
     e?.preventDefault();
     e?.stopPropagation();
+    setShowBack(false);
+  };
 
-    if (showBack) {
-      setShowBack(false);
+  const handleArtworkFlip = async (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (isDeleteMode) {
+      onSelect?.();
       return;
     }
 
-    // open back and lazy-load favorites + tracks
     await openCardBack();
   };
 
@@ -404,6 +410,14 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
     window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener,noreferrer');
   };
 
+  const handleArtistNameClick = (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (onArtistClick && album?.artistName) {
+      onArtistClick(album.artistName, album.artistId);
+    }
+  };
+
   // Loading overlay while tracks are being fetched
   if (loadingTracks) {
     return (
@@ -428,7 +442,7 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
         opacity: isDeleteMode && !isSelected ? 0.6 : 1, transition: 'all 0.2s ease',
         border: isSelected ? '2px solid #ef4444' : '2px solid transparent', borderRadius: '18px',
         padding: isSelected ? '0.5rem' : '0'
-      }} onClick={handleCardClick}>
+      }} onClick={handleBackCardClick}>
         <div style={{
           display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#1e293b',
           borderRadius: '16px', padding: '1rem', boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)'
@@ -445,7 +459,24 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
                   cursor: 'pointer', color: '#94a3b8', fontSize: '16px', flexShrink: 0, marginLeft: '0.5rem'
                 }}>×</button>
             </div>
-            <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: 0 }}>{album.artistName}</p>
+            <button
+              type="button"
+              onClick={handleArtistNameClick}
+              style={{
+                fontSize: '0.9rem',
+                color: '#93c5fd',
+                margin: 0,
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: onArtistClick ? 'pointer' : 'default',
+                textAlign: 'left',
+                textDecoration: onArtistClick ? 'underline' : 'none',
+                textUnderlineOffset: '2px'
+              }}
+            >
+              {album.artistName}
+            </button>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem' }}>
@@ -518,7 +549,7 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
       opacity: isDeleteMode && !isSelected ? 0.6 : 1, transition: 'all 0.2s ease',
       border: isSelected ? '2px solid #ef4444' : '2px solid transparent', borderRadius: '18px',
       padding: isSelected ? '0.5rem' : '0'
-    }} onClick={handleCardClick}>
+    }}>
 
       {isDeleteMode && (
         <div style={{
@@ -530,12 +561,27 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
         </div>
       )}
 
-      <img src={album.artworkUrl100 ? album.artworkUrl100.replace('100x100', '500x500') : '/placeholder.png'}
-        alt={album.collectionName}
+      <button
+        className="album-artwork-button"
+        type="button"
+        onClick={handleArtworkFlip}
         style={{
-          width: '100%', height: 'auto', aspectRatio: '1', objectFit: 'cover', borderRadius: '16px', marginBottom: '1rem',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)', transition: 'all 0.3s ease'
-        }} />
+          border: 'none',
+          background: 'transparent',
+          padding: 0,
+          marginBottom: '1rem',
+          width: '100%',
+          cursor: isDeleteMode ? 'pointer' : 'zoom-in',
+          borderRadius: '16px',
+        }}
+      >
+        <img src={album.artworkUrl100 ? album.artworkUrl100.replace('100x100', '500x500') : '/placeholder.png'}
+          alt={album.collectionName}
+          style={{
+            width: '100%', height: 'auto', aspectRatio: '1', objectFit: 'cover', borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)', transition: 'all 0.3s ease'
+          }} />
+      </button>
 
       <div style={{ textAlign: 'center', flex: '1', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <h3 style={{
@@ -543,10 +589,29 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
         }}>{album.collectionName}</h3>
 
-        <p style={{
-          marginBottom: '0.75rem', fontSize: '0.9rem', color: '#94a3b8', lineHeight: '1.4',
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
-        }}>{album.artistName}</p>
+        <button
+          type="button"
+          onClick={handleArtistNameClick}
+          style={{
+            marginBottom: '0.75rem',
+            fontSize: '0.9rem',
+            color: '#93c5fd',
+            lineHeight: '1.4',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: onArtistClick ? 'pointer' : 'default',
+            textDecoration: onArtistClick ? 'underline' : 'none',
+            textUnderlineOffset: '2px',
+            alignSelf: 'center'
+          }}
+        >
+          {album.artistName}
+        </button>
 
         <div style={{ alignContent: 'center', marginBottom: 'auto', paddingBottom: '0.75rem' }}>
           {(album.primaryGenreName || getReleaseYear(album.releaseDate) || getTotalAlbumDuration(tracks)) && (
@@ -617,6 +682,7 @@ const handleTrackFavorite = async (trackIdRaw, e, track = null) => {
           </div>
         ) : (
           <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (onOpenSurvey) onOpenSurvey(album); }}
+            className={`album-rate-button${album.rating ? ' rated' : ''}`}
             style={{
               display: 'block', width: 'calc(100% - 1rem)', margin: '0 auto', padding: '0.875rem 1.25rem',
               fontSize: '0.9rem', fontWeight: '600', borderRadius: '16px', border: 'none', cursor: 'pointer',

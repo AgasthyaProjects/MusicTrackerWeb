@@ -1,15 +1,31 @@
 # MusicTrackerWeb
 
-A Locally hosted Web Application to log albums/songs listened to by using Itunes' and Lastfm's APIs. Comes with various statistics and neatly displayed graphs to learn and understand your listening behavior.
-## Quick Start
-(For MAC so far)
+A locally hosted web app to log albums and songs using iTunes and Last.fm APIs, with listening statistics and charts.
 
-1. Download this repository
-2. Run: `./create-mac-installer.sh`
-3. Run Music Tracker from Desktop
+## Quick Start (macOS)
+1. Download this repository.
+2. Run `./create-mac-installer.sh`.
+3. Run Music Tracker from Desktop.
 
-### For Developers:
+## Developer Start (macOS/Linux)
 ```bash
 npm install
 chmod +x start.sh
 ./start.sh
+```
+
+## Developer Start (Windows)
+```powershell
+npm.cmd run start:windows
+```
+
+Or run setup and dev commands manually:
+```powershell
+npm.cmd run install:all
+npm.cmd run dev
+```
+
+Or run:
+```bat
+start-windows.cmd
+```

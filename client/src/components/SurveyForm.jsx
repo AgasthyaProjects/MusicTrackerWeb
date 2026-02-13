@@ -25,6 +25,11 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
   const [loadingTracks, setLoadingTracks] = useState(false);
   const [favoriteSong, setFavoriteSong] = useState('');
 
+  useEffect(() => {
+    setRating(Number(album.rating) || 0);
+    setFavoriteSong(album.favoriteSong || '');
+  }, [album.collectionId, album.rating, album.favoriteSong]);
+
   // Initialize drag handlers
   const dragHandlers = useDragHandlers(
     (value) => setRating(value),           // onRatingChange
@@ -78,7 +83,12 @@ export default function SurveyForm({ album = {}, onSubmitted }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    onSubmitted?.();
+    onSubmitted?.({
+      collectionId: album.collectionId,
+      rating,
+      favoriteSong: favoriteSong || null,
+      logdatetime: new Date().toISOString(),
+    });
   };
 
   const getRatingColor = (currentRating) => {

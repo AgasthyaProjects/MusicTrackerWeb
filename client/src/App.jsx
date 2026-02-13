@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm';
 import SearchTab from './components/SearchTab';
 import LoggedAlbumsTab from './components/LoggedAlbumsTab';
@@ -16,10 +16,63 @@ export default function App() {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [songs, setSongs] = useState([]);
+  const [latestRatedAlbum, setLatestRatedAlbum] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const launcherSession = params.get('launcherSession');
+    if (!launcherSession) {
+      return undefined;
+    }
+
+    const payload = JSON.stringify({ sessionId: launcherSession });
+
+    const sendHeartbeat = () =>
+      fetch('/api/launcher/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {
+        // Heartbeat can fail transiently during reload/navigation.
+      });
+
+    const sendClose = () => {
+      if (navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon('/api/launcher/close', blob);
+        return;
+      }
+
+      fetch('/api/launcher/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {
+        // Best-effort close notification.
+      });
+    };
+
+    // Start heartbeat immediately and keep it alive while app page is open.
+    sendHeartbeat();
+    const intervalId = window.setInterval(sendHeartbeat, 8000);
+
+    window.addEventListener('pagehide', sendClose);
+    window.addEventListener('beforeunload', sendClose);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('pagehide', sendClose);
+      window.removeEventListener('beforeunload', sendClose);
+      sendClose();
+    };
+  }, []);
 
   const {
     albums,
     loggedAlbums,
+    ratingsMap,
     selectedAlbumIds,
     isDeleteMode,
     setAlbums,
@@ -33,9 +86,24 @@ export default function App() {
     handleDeleteSelected
   } = useAlbumData();
 
+  const mergeRatingsIntoAlbums = (albumResults, ratingsLookup) => {
+    return albumResults.map((album) => {
+      const rating =
+        ratingsLookup[album.collectionName] ??
+        ratingsLookup[String(album.collectionId)] ??
+        ratingsLookup[album.collectionName?.trim()] ??
+        null;
+
+      return { ...album, rating };
+    });
+  };
+
   const handleAlbumSearch = async (query) => {
-    const results = await searchAlbums(query);
-    setAlbums(results);
+    const [results, freshRatingsMap] = await Promise.all([
+      searchAlbums(query),
+      fetchRatings(),
+    ]);
+    setAlbums(mergeRatingsIntoAlbums(results, freshRatingsMap));
     setSelectedAlbum(null);
     setShowSurvey(false);
   };
@@ -89,22 +157,30 @@ const handleSongSearch = async (query, onProgress) => {
     setShowSurvey(true);
   };
 
-  const handleSurveyClose = async () => {
-    if (selectedAlbum) {
-      const updatedRatingsMap = await fetchRatings();
+  const handleSurveyClose = async (submittedAlbum = null) => {
+    if (submittedAlbum?.collectionId) {
+      setLatestRatedAlbum(submittedAlbum);
       setAlbums((prevAlbums) =>
         prevAlbums.map((album) => {
-          if (album.collectionId === selectedAlbum.collectionId) {
-            const updatedRating = updatedRatingsMap[album.collectionName] ||
-              updatedRatingsMap[String(album.collectionId)] ||
-              updatedRatingsMap[album.collectionName?.trim()] ||
-              null;
-            return { ...album, rating: updatedRating };
+          if (String(album.collectionId) !== String(submittedAlbum.collectionId)) {
+            return album;
           }
-          return album;
+
+          return {
+            ...album,
+            rating: submittedAlbum.rating,
+            favoriteSong: submittedAlbum.favoriteSong ?? album.favoriteSong,
+            logdatetime: submittedAlbum.logdatetime ?? album.logdatetime,
+          };
         }),
       );
     }
+
+    if (selectedAlbum) {
+      const updatedRatingsMap = await fetchRatings();
+      setAlbums((prevAlbums) => mergeRatingsIntoAlbums(prevAlbums, updatedRatingsMap));
+    }
+
     setShowSurvey(false);
     setSelectedAlbum(null);
   };
@@ -158,6 +234,8 @@ const handleSongSearch = async (query, onProgress) => {
         <SearchTab
           albums={albums}
           songs={songs}
+          ratingsLookup={ratingsMap}
+          latestRatedAlbum={latestRatedAlbum}
           onSearchAlbum={handleAlbumSearch}
           onSearchSong={handleSongSearch}
           onSongsUpdate={handleSongsUpdate}
@@ -214,7 +292,7 @@ const handleSongSearch = async (query, onProgress) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 2000,
           }}
           onClick={handleSurveyClose}
         >

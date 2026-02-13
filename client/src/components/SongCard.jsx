@@ -6,6 +6,7 @@ export default function SongCard({
   isPending = false,
   isFav = true,
   onUnfavorite,
+  onArtistClick,
   genre,
   fullReleaseDate,
   trackduration,
@@ -42,6 +43,14 @@ export default function SongCard({
   };
 
   const imgUrl = track.artwork_url ? track.artwork_url.replace('100x100', '200x200') : null;
+
+  const handleArtistClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onArtistClick && track.artist_name) {
+      onArtistClick(track.artist_name, track.artist_id ?? track.artistId);
+    }
+  };
 
   return (
     <div
@@ -179,17 +188,28 @@ export default function SongCard({
           }}>
             {track.track_name}
           </h3>
-          <p style={{
-            margin: 0,
-            color: '#cbd5e1',
-            fontSize: 12,
-            fontWeight: 500,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
+          <button
+            type="button"
+            onClick={handleArtistClick}
+            style={{
+              margin: 0,
+              color: '#93c5fd',
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: onArtistClick ? 'pointer' : 'default',
+              textAlign: 'left',
+              textDecoration: onArtistClick ? 'underline' : 'none',
+              textUnderlineOffset: '2px'
+            }}
+          >
             {track.artist_name}
-          </p>
+          </button>
           <p style={{
             margin: 0,
             color: '#94a3b8',

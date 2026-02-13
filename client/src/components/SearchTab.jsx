@@ -1,39 +1,139 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AlbumCard from './AlbumCard';
 import SongCard from './SongCard';
+import { searchAlbumsByArtist } from '../api/itunes';
 
 export default function SearchTab({
   albums = [],
   songs = [],
+  ratingsLookup = {},
+  latestRatedAlbum = null,
   onSearchAlbum,
   onSearchSong,
   onOpenSurvey,
-  onSongsUpdate, // New prop to receive updated songs with enriched data
+  onSongsUpdate,
 }) {
-  // internal sub-tab: 'albums' or 'songs'
   const [activeSubTab, setActiveSubTab] = useState('albums');
-
-  // separate queries per tab (keeps input state distinct)
   const [albumQuery, setAlbumQuery] = useState('');
   const [songQuery, setSongQuery] = useState('');
-
-  // Add state for managing favorite operations (similar to FavoritesTab)
   const [pendingIds, setPendingIds] = useState(new Set());
   const [favoritedTracks, setFavoritedTracks] = useState(new Set());
+  const [artistView, setArtistView] = useState({
+    isOpen: false,
+    artistName: '',
+    artistId: null,
+    albums: [],
+    isLoading: false,
+    error: '',
+  });
 
   const handleAlbumSearch = () => {
     onSearchAlbum?.(albumQuery.trim());
   };
 
   const handleSongSearch = () => {
-    // Pass a callback to receive progressive updates
     onSearchSong?.(songQuery.trim(), (updatedSongs) => {
-      // If the parent provides onSongsUpdate, use it
       onSongsUpdate?.(updatedSongs);
     });
   };
 
-  // Helper functions (copied from FavoritesTab logic)
+  const handleOpenArtistView = async (artistName, artistId = null) => {
+    if (!artistName) return;
+
+    setArtistView({
+      isOpen: true,
+      artistName,
+      artistId,
+      albums: [],
+      isLoading: true,
+      error: '',
+    });
+
+    try {
+      const results = await searchAlbumsByArtist({ artistName, artistId });
+      const hydratedResults = results.map((album) => {
+        const rating =
+          ratingsLookup[album.collectionName] ??
+          ratingsLookup[String(album.collectionId)] ??
+          ratingsLookup[album.collectionName?.trim()] ??
+          album.rating ??
+          null;
+        return { ...album, rating };
+      });
+
+      setArtistView((prev) => ({
+        ...prev,
+        albums: hydratedResults,
+        isLoading: false,
+      }));
+    } catch (err) {
+      console.error('Failed to load artist albums:', err);
+      setArtistView((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to load artist albums.',
+      }));
+    }
+  };
+
+  const handleCloseArtistView = () => {
+    setArtistView({
+      isOpen: false,
+      artistName: '',
+      artistId: null,
+      albums: [],
+      isLoading: false,
+      error: '',
+    });
+  };
+
+  useEffect(() => {
+    if (!latestRatedAlbum?.collectionId) return;
+
+    setArtistView((prev) => {
+      if (!prev.albums.length) return prev;
+
+      const nextAlbums = prev.albums.map((album) => {
+        if (String(album.collectionId) !== String(latestRatedAlbum.collectionId)) {
+          return album;
+        }
+
+        return {
+          ...album,
+          rating: latestRatedAlbum.rating,
+          favoriteSong: latestRatedAlbum.favoriteSong ?? album.favoriteSong,
+          logdatetime: latestRatedAlbum.logdatetime ?? album.logdatetime,
+        };
+      });
+
+      return {
+        ...prev,
+        albums: nextAlbums,
+      };
+    });
+  }, [latestRatedAlbum]);
+
+  useEffect(() => {
+    setArtistView((prev) => {
+      if (!prev.albums.length) return prev;
+
+      const nextAlbums = prev.albums.map((album) => {
+        const rating =
+          ratingsLookup[album.collectionName] ??
+          ratingsLookup[String(album.collectionId)] ??
+          ratingsLookup[album.collectionName?.trim()] ??
+          album.rating ??
+          null;
+        return { ...album, rating };
+      });
+
+      return {
+        ...prev,
+        albums: nextAlbums,
+      };
+    });
+  }, [ratingsLookup]);
+
   const formatDuration = (milliseconds) => {
     if (!milliseconds) return null;
     const seconds = Math.floor(milliseconds / 1000);
@@ -43,9 +143,8 @@ export default function SearchTab({
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       return `${hours}h ${mins}m`;
-    } else {
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const getGenreFromTrack = (track) => {
@@ -58,77 +157,149 @@ export default function SearchTab({
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
       });
     }
     return null;
   };
 
-  // Handle favoriting/unfavoriting tracks
   const handleFavoriteToggle = async (track, e) => {
     e.preventDefault();
-    if (pendingIds.has(track.track_id)) return;
+    e.stopPropagation();
+    const trackId = String(track.track_id ?? track.trackId ?? '').trim();
+    const albumId = String(track.album_id ?? track.collectionId ?? '').trim();
 
-    const isCurrentlyFavorited = favoritedTracks.has(track.track_id);
+    if (!trackId || !albumId) {
+      console.warn('Cannot favorite track without trackId/albumId', track);
+      return;
+    }
+
+    if (pendingIds.has(trackId)) return;
+
+    const isCurrentlyFavorited = favoritedTracks.has(trackId);
     const action = isCurrentlyFavorited ? 'remove' : 'add';
 
-    setPendingIds(prev => new Set([...prev, track.track_id]));
+    // Optimistic update for immediate UI response.
+    setFavoritedTracks((prev) => {
+      const next = new Set(prev);
+      if (action === 'add') next.add(trackId);
+      else next.delete(trackId);
+      return next;
+    });
+    setPendingIds((prev) => new Set([...prev, trackId]));
 
     try {
+      const payload = {
+        albumId,
+        trackId,
+        action,
+        trackName: track.track_name ?? track.trackName ?? '',
+        artistName: track.artist_name ?? track.artistName ?? '',
+        albumName: track.album_name ?? track.collectionName ?? '',
+        artworkUrl: (track.artwork_url ?? track.artworkUrl100 ?? '').replace('100x100', '500x500'),
+        duration: track.durations_ms ?? track.trackTimeMillis ?? null,
+        releaseDate: track.release_date ?? track.releaseDate ?? null,
+        listeners: track.listeners ?? 0,
+        playcount: track.playcount ?? 0,
+        genre: track.genre ?? null,
+      };
+
       const res = await fetch('/api/favoriteTracks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          albumId: track.album_id, // Now should be available from iTunes lookup
-          trackId: track.track_id,
-          action: action,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 
-      if (data.success) {
-        setFavoritedTracks(prev => {
-          const newSet = new Set(prev);
-          if (action === 'add') {
-            newSet.add(track.track_id);
-          } else {
-            newSet.delete(track.track_id);
-          }
-          return newSet;
-        });
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || `Favorite API failed (${res.status})`);
       }
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
+      // Rollback optimistic change on failure.
+      setFavoritedTracks((prev) => {
+        const next = new Set(prev);
+        if (action === 'add') next.delete(trackId);
+        else next.add(trackId);
+        return next;
+      });
     } finally {
-      setPendingIds(prev => {
+      setPendingIds((prev) => {
         const copy = new Set(prev);
-        copy.delete(track.track_id);
+        copy.delete(trackId);
         return copy;
       });
     }
   };
 
+  const renderSongsGrid = (tracks) => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: 16,
+        marginBottom: '1rem',
+      }}
+    >
+      {tracks.length ? (
+        tracks.map((track, index) => {
+          const normalizedTrack = {
+            ...track,
+            track_id: String(track.trackId ?? track.track_id ?? ''),
+            track_name: track.trackName || track.track_name,
+            artist_name: track.artistName || track.artist_name,
+            artist_id: track.artistId || track.artist_id,
+            album_name: track.collectionName || track.album_name,
+            album_id: String(track.collectionId ?? track.album_id ?? ''),
+            artwork_url: track.artworkUrl100 || track.artwork_url,
+            durations_ms: track.trackTimeMillis || track.durations_ms,
+            release_date: track.releaseDate || track.release_date,
+            listeners: track.listeners,
+            playcount: track.playcount,
+          };
+
+          const isPending = pendingIds.has(normalizedTrack.track_id);
+          const isFav = favoritedTracks.has(normalizedTrack.track_id);
+          const genre = getGenreFromTrack(normalizedTrack);
+          const fullReleaseDate = formatFullReleaseDate(normalizedTrack);
+          const trackduration = formatDuration(normalizedTrack.durations_ms);
+
+          const uniqueKey = normalizedTrack.track_id
+            || `${normalizedTrack.artist_name || 'unknown'}-${normalizedTrack.track_name || 'unknown'}-${normalizedTrack.album_name || 'unknown'}-${index}`
+            || `song-${index}`;
+
+          return (
+            <SongCard
+              key={uniqueKey}
+              track={normalizedTrack}
+              isPending={isPending}
+              isFav={isFav}
+              onUnfavorite={handleFavoriteToggle}
+              onArtistClick={handleOpenArtistView}
+              genre={genre}
+              fullReleaseDate={fullReleaseDate}
+              trackduration={trackduration}
+            />
+          );
+        })
+      ) : (
+        <p>No songs yet - try a search.</p>
+      )}
+    </div>
+  );
+
   return (
     <section>
-      {/* sub-tab buttons */}
       <div className="tab-buttons" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <button
-          className="subtab-button"
-          onClick={() => setActiveSubTab('albums')}
-        >
+        <button className="subtab-button" onClick={() => setActiveSubTab('albums')}>
           Albums
         </button>
-        <button
-          className="subtab-button"
-          onClick={() => setActiveSubTab('songs')}
-        >
+        <button className="subtab-button" onClick={() => setActiveSubTab('songs')}>
           Songs
         </button>
       </div>
 
-      {/* shared-looking search area, but with per-tab query */}
-      <div className="search-container" style={{ display: 'flex', gap: 8, marginBottom: 20
-       }}>
+      <div className="search-container" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {activeSubTab === 'albums' ? (
           <>
             <input
@@ -154,73 +325,105 @@ export default function SearchTab({
         )}
       </div>
 
-      {/* results grid - different styling for albums vs songs */}
       {activeSubTab === 'albums' ? (
-        <div className="album-grid" style={{ marginBottom: "1rem" }}>
+        <div className="album-grid" style={{ marginBottom: '1rem' }}>
           {albums.length ? (
             albums.map((album) => (
               <AlbumCard
                 key={album.collectionId ?? `${album.artist}-${album.name}`}
                 album={album}
+                onArtistClick={handleOpenArtistView}
                 onOpenSurvey={() => onOpenSurvey?.(album)}
               />
             ))
           ) : (
-            <p>No albums yet — try a search.</p>
+            <p>No albums yet - try a search.</p>
           )}
         </div>
       ) : (
-        /* Songs grid with 2-column layout like FavoritesTab */
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: 16,
-          marginBottom: "1rem"
-        }}>
-          {songs.length ? (
-            songs.map((track, index) => {
-              // Map the search result properties to match what SongCard expects
-              const normalizedTrack = {
-                ...track,
-                track_id: track.trackId || track.track_id,
-                track_name: track.trackName || track.track_name,
-                artist_name: track.artistName || track.artist_name,
-                album_name: track.collectionName || track.album_name,
-                album_id: track.collectionId || track.album_id, // Now available from iTunes API
-                artwork_url: track.artworkUrl100 || track.artwork_url,
-                durations_ms: track.trackTimeMillis || track.durations_ms,
-                release_date: track.releaseDate || track.release_date, // Now available from album lookup
-                listeners: track.listeners, // Keep existing if available
-                playcount: track.playcount, // Keep existing if available
-              };
+        renderSongsGrid(songs)
+      )}
 
-              const isPending = pendingIds.has(normalizedTrack.track_id);
-              const isFav = favoritedTracks.has(normalizedTrack.track_id);
-              const genre = getGenreFromTrack(normalizedTrack);
-              const fullReleaseDate = formatFullReleaseDate(normalizedTrack);
-              const trackduration = formatDuration(normalizedTrack.durations_ms);
+      {artistView.isOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(2, 6, 23, 0.78)',
+            zIndex: 1200,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '1.5rem',
+          }}
+          onClick={handleCloseArtistView}
+        >
+          <div
+            style={{
+              width: 'min(1200px, 100%)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: 'linear-gradient(180deg, #0f172a 0%, #020617 100%)',
+              border: '1px solid #334155',
+              borderRadius: 16,
+              padding: '1.2rem',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+                gap: '1rem',
+              }}
+            >
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#f8fafc' }}>
+                  {artistView.artistName}
+                </h2>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>
+                  Artist albums
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseArtistView}
+                style={{
+                  border: '1px solid #475569',
+                  background: '#1e293b',
+                  color: '#f8fafc',
+                  borderRadius: 10,
+                  padding: '0.55rem 0.85rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Close
+              </button>
+            </div>
 
-              // Generate a unique key with fallbacks
-              const uniqueKey = normalizedTrack.track_id
-                || `${normalizedTrack.artist_name || 'unknown'}-${normalizedTrack.track_name || 'unknown'}-${normalizedTrack.album_name || 'unknown'}-${index}`
-                || `song-${index}`;
-
-              return (
-                <SongCard
-                  key={uniqueKey}
-                  track={normalizedTrack}
-                  isPending={isPending}
-                  isFav={isFav}
-                  onUnfavorite={handleFavoriteToggle}
-                  genre={genre}
-                  fullReleaseDate={fullReleaseDate}
-                  trackduration={trackduration}
-                />
-              );
-            })
-          ) : (
-            <p>No songs yet — try a search.</p>
-          )}
+            {artistView.isLoading ? (
+              <p style={{ color: '#94a3b8', margin: 0 }}>Loading albums...</p>
+            ) : artistView.error ? (
+              <p style={{ color: '#fca5a5', margin: 0 }}>{artistView.error}</p>
+            ) : artistView.albums.length ? (
+              <div className="album-grid" style={{ marginBottom: 0 }}>
+                {artistView.albums.map((album) => (
+                  <AlbumCard
+                    key={`artist-${album.collectionId ?? `${album.artistName}-${album.collectionName}`}`}
+                    album={album}
+                    onArtistClick={handleOpenArtistView}
+                    onOpenSurvey={() => onOpenSurvey?.(album)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#94a3b8', margin: 0 }}>No albums found for this artist.</p>
+            )}
+          </div>
         </div>
       )}
     </section>
